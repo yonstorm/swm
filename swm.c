@@ -59,19 +59,15 @@ static void set_focused_monitor(int mon) {
     // Should propably window focus here aswell to the top window
 }
 
-void set_active_borders(Window w) {
-    // reset other windows borders to unfocused
-    // this is a bit inefficient but works
-    for (int i = 0; i < num_monitors; i++) {
-        Monitor *m = &monitors[i];
-        for (int j = 0; j < m->count; j++) {
-            if (m->stack[j] != w) {
-                XSetWindowBorder(dpy, m->stack[j], unfocused_border_color);
-            }
-        }
+static void set_active_borders(Window w) {
+    static Window last_focused = None;
+    
+    if (last_focused && last_focused != w) {
+        XSetWindowBorder(dpy, last_focused, unfocused_border_color);
     }
 
     XSetWindowBorder(dpy, w, focused_border_color);
+    last_focused = w;
 }
 
 void kill_focused_window() {
