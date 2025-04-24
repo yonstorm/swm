@@ -9,17 +9,6 @@
 #include "config.h"
 
 #define MAX_CLIENTS 256
-
-static int xerror_handler(Display *dpy, XErrorEvent *e) {
-    char msg[256];
-    XGetErrorText(dpy, e->error_code, msg, sizeof(msg));
-    fprintf(stderr,
-        "X11 error: %s (req %d.%d resource 0x%lx)\n",
-        msg, e->request_code, e->minor_code, e->resourceid);
-    // returning 0 supresses default X11 error output
-    return 0;
-}
-
 typedef struct {
   Window stack[MAX_CLIENTS];
   int   count;
@@ -42,6 +31,53 @@ int  current = -1;
 unsigned long focused_border_color;
 unsigned long unfocused_border_color;
 int border_width = BORDER_WIDTH;
+
+static int xerror_handler(Display *dpy, XErrorEvent *e) {
+    char msg[256];
+    XGetErrorText(dpy, e->error_code, msg, sizeof(msg));
+    fprintf(stderr,
+        "X11 error: %s (req %d.%d resource 0x%lx)\n",
+        msg, e->request_code, e->minor_code, e->resourceid);
+    // returning 0 supresses default X11 error output
+    return 0;
+}
+
+
+static void cycle(int dir);
+static void focus_monitor_relative(int dir);
+static void kill_focused_window(void);
+static void move_window_relative(int dir);
+
+
+static void cmd_next(void)               { cycle(+1); }
+static void cmd_prev(void)               { cycle(-1); }
+static void cmd_focus_mon_left(void)     { focus_monitor_relative(-1); }
+static void cmd_focus_mon_right(void)    { focus_monitor_relative(+1); }
+static void cmd_kill_focused(void)       { kill_focused_window(); }
+static void cmd_move_window_left(void)   { move_window_relative(-1); }
+static void cmd_move_window_right(void)  { move_window_relative(+1); }
+static void cmd_quit(void) {
+    XCloseDisplay(dpy);
+    exit(0);
+}
+
+typedef struct {
+    const char *cmd;
+    void (*fn)(void);
+} CmdHandler;
+
+static const CmdHandler handlers[] = {
+    { "next",             cmd_next            },
+    { "prev",             cmd_prev            },
+    { "focus_mon_left",   cmd_focus_mon_left  },
+    { "focus_mon_right",  cmd_focus_mon_right },
+    { "move_window_left", cmd_move_window_left },
+    { "move_window_right",cmd_move_window_right},
+    { "kill_focused",     cmd_kill_focused    },
+    { "quit",             cmd_quit            },
+};
+static const size_t n_handlers = sizeof(handlers) / sizeof(handlers[0]);
+
 
 static void set_focused_monitor(int mon) {
     if (mon < 0 || mon >= num_monitors) {
@@ -315,45 +351,36 @@ void handle_map(XEvent *e) {
 }
 
 static void handle_prop(XEvent *e) {
-    if (e->xproperty.atom != cmd_atom) return;
+    if (e->xproperty.atom != cmd_atom)
+        return;
 
     Atom actual;
     int format;
     unsigned long n, after;
     unsigned char *data = NULL;
-    
+
     if (XGetWindowProperty(dpy, root, cmd_atom, 0, 32, False,
                            XA_STRING, &actual, &format,
                            &n, &after, &data) != Success || !data)
         return;
 
-        
-    if (strcmp((char*)data, "next") == 0) {
-      cycle(+1);
-    }      
-    else if (strcmp((char*)data, "prev") == 0){
-      cycle(-1);
-    }
-    else if (strcmp((char*)data, "focus_mon_left") == 0){
-      focus_monitor_relative(-1);
-    }
-    else if (strcmp((char*)data, "focus_mon_right") == 0){
-      focus_monitor_relative(+1);
-    }
-    else if (strcmp((char*)data, "kill_focused") == 0){
-      kill_focused_window();
-    }
-    else if (strcmp((char*)data, "move_window_left") == 0){
-      move_window_relative(-1);
-    }
-    else if (strcmp((char*)data, "move_window_right") == 0){
-      move_window_relative(+1);
+    // Ensure C-string
+    if (format != 8 || n == 0) {
+        XFree(data);
+        return;
     }
 
-    else if (strcmp((char*)data, "quit") == 0){
-      XFree(data);
-      XCloseDisplay(dpy);
-      exit(0);
+    int handled = False;
+    for (size_t i = 0; i < n_handlers; ++i) {
+        if (strcmp((char*)data, handlers[i].cmd) == 0) {
+            handlers[i].fn();
+            handled = True;
+            break;
+        }
+    }
+
+    if (!handled) {
+        fprintf(stderr, "handle_prop: unknown command '%.*s'\n", (int)n, data);
     }
 
     XFree(data);
