@@ -10,10 +10,13 @@
 
 #define MAX_CLIENTS 256
 
-int xerror_handler(Display *dpy, XErrorEvent *e) {
+static int xerror_handler(Display *dpy, XErrorEvent *e) {
     char msg[256];
     XGetErrorText(dpy, e->error_code, msg, sizeof(msg));
-    fprintf(stderr, "X11 error: %s (request code %d)\n", msg, e->request_code);
+    fprintf(stderr,
+        "X11 error: %s (req %d.%d resource 0x%lx)\n",
+        msg, e->request_code, e->minor_code, e->resourceid);
+    // returning 0 supresses default X11 error output
     return 0;
 }
 
