@@ -204,24 +204,31 @@ static void focus_monitor_relative(int dir) {
     XSync(dpy, False);
 }
 
-int monitor_under_pointer() {
+static int get_monitor_at_pointer() {
     Window root_return, child_return;
     int root_x, root_y, win_x, win_y;
     unsigned int mask_return;
 
-    XQueryPointer(dpy, root, &root_return, &child_return,
-                  &root_x, &root_y, &win_x, &win_y, &mask_return);
+    if(!XQueryPointer(dpy, root, &root_return, &child_return,
+                  &root_x, &root_y, &win_x, &win_y, &mask_return)) {
+          fprintf(stderr, "get_monitor_at_pointer: XQueryPointer failed\n");
+          return focused_monitor >= 0 ? focused_monitor : 0;
+    };
 
-    for (int i = 0; i < num_monitors; i++) {
-        if (root_x >= screens[i].x_org &&
-            root_x < screens[i].x_org + screens[i].width &&
-            root_y >= screens[i].y_org &&
-            root_y < screens[i].y_org + screens[i].height) {
+    // TODO: use cached value that is set on EnterNotify 
+    for (int i = 0; i < num_monitors; ++i) {
+        int x0 = screens[i].x_org;
+        int y0 = screens[i].y_org;
+        int x1 = x0 + screens[i].width;
+        int y1 = y0 + screens[i].height;
+
+        if (root_x >= x0 && root_x < x1 &&
+            root_y >= y0 && root_y < y1) {
             return i;
         }
     }
 
-    return 0; // fallback
+    return (focused_monitor >= 0) ? focused_monitor : 0; // fallback
 }
 
 void cycle(int dir) {
@@ -262,7 +269,7 @@ void handle_map(XEvent *e) {
         }
     }
     // Pick monitor based on pointer location or rules
-    int mon = focused_monitor >= 0 ? focused_monitor : monitor_under_pointer();
+    int mon = focused_monitor >= 0 ? focused_monitor : get_monitor_at_pointer();
 
     XClassHint ch;
     XGetClassHint(dpy, w, &ch);
@@ -454,7 +461,7 @@ int main(void) {
 
     int screen = DefaultScreen(dpy);
 
-    set_focused_monitor(monitor_under_pointer());
+    set_focused_monitor(get_monitor_at_pointer());
 
     // listen for new windows and our property
     XSelectInput(dpy, root,
