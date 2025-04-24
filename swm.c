@@ -116,7 +116,22 @@ static void kill_focused_window() {
     XSync(dpy, False);
 }
 
-void move_window_relative(int dir) {
+static int find_neighbor_monitor(int focused, int dir) {
+    int found = -1;
+    int current_x = screens[focused_monitor].x_org;
+
+    for (int i = 0; i < num_monitors; i++) {
+        if (i == focused_monitor) continue;
+        int dx = screens[i].x_org - current_x;
+        if ((dir < 0 && dx < 0) || (dir > 0 && dx > 0)) {
+            if (found == -1 || abs(dx) < abs(screens[found].x_org - current_x))
+                found = i;
+        }
+    }
+    return found;
+}
+
+static void move_window_relative(int dir) {
     if (focused_monitor < 0 || focused_monitor >= num_monitors)
         return;
 
@@ -126,50 +141,42 @@ void move_window_relative(int dir) {
     Window w = src->stack[src->current];
 
     // Determine target monitor
-    int best = -1;
-    int current_x = screens[focused_monitor].x_org;
-
-    for (int i = 0; i < num_monitors; i++) {
-        if (i == focused_monitor) continue;
-        int dx = screens[i].x_org - current_x;
-        if ((dir < 0 && dx < 0) || (dir > 0 && dx > 0)) {
-            if (best == -1 || abs(dx) < abs(screens[best].x_org - current_x))
-                best = i;
-        }
+    int best = find_neighbor_monitor(focused_monitor, dir);
+    if (best < 0){
+      fprintf(stderr, "move_window_relative: no neighbor in dir %d\n", dir);
+      return;
     }
-
-    if (best == -1) return;
-
     Monitor *dst = &monitors[best];
 
-    // Remove from src stack
+    // Remove winodw from src stack
     for (int i = src->current; i < src->count - 1; i++)
         src->stack[i] = src->stack[i + 1];
     src->count--;
-    if (src->current >= src->count) src->current = src->count - 1;
+    src->current = (src->count > 0) ? src->current % src->count : -1;
 
     // Add to dst stack
-    if (dst->count >= MAX_CLIENTS) return;
+    if (dst->count >= MAX_CLIENTS) {
+      fprintf(stderr, "move_window_relative: monitor %d full\n", best);
+      return;
+    }
 
-    dst->stack[dst->count++] = w;
-    dst->current = dst->count - 1;
+    dst->stack[dst->count] = w;
+    dst->current = dst->count++;
 
     // Move and resize to new monitor
     XMoveResizeWindow(dpy, w,
-        screens[best].x_org,
-        screens[best].y_org,
-        screens[best].width,
-        screens[best].height
+        screens[best].x_org, screens[best].y_org,
+        screens[best].width, screens[best].height
     );
 
-    // Focus and raise
     XRaiseWindow(dpy, w);
     
-    Window active_win = src->stack[src->current];
-    XSetInputFocus(dpy, active_win, RevertToPointerRoot, CurrentTime);
-
+    XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
+    // invalid dereference?
+    //Window active_win = src->stack[src->current];
     // Update borders
-    set_active_borders(active_win);
+    set_active_borders(w);
+    XSync(dpy, False);
 }
 
 void focus_monitor_relative(int dir) {
