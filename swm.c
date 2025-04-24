@@ -43,8 +43,16 @@ unsigned long focused_border_color;
 unsigned long unfocused_border_color;
 int border_width = BORDER_WIDTH;
 
-void SetFocusedMonitor(int mon) {
-    if (mon < 0 || mon >= num_monitors) return;
+static void set_focused_monitor(int mon) {
+    if (mon < 0 || mon >= num_monitors) {
+      fprintf(stderr, "set_focused_monitor: invalid monitor %d\n", mon);
+      return;
+    }
+
+    if (focused_monitor == mon) {
+      fprintf(stderr, "Monitor %d already focused\n", mon);
+      return;
+    }
 
     focused_monitor = mon;
     fprintf(stderr, "Focus moved to monitor %d\n", mon);
@@ -183,7 +191,7 @@ void focus_monitor_relative(int dir) {
         return;
 
     Monitor *m = &monitors[target];
-    SetFocusedMonitor(target);
+    set_focused_monitor(target);
 
     if (m->count == 0 || m->current < 0) return;
 
@@ -230,7 +238,7 @@ void cycle(int dir) {
     XRaiseWindow(dpy, w);
     XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
 
-    SetFocusedMonitor(mon);
+    set_focused_monitor(mon);
 }
 
 void handle_map(XEvent *e) {
@@ -371,7 +379,7 @@ void handle_destroy(XEvent *e) {
                     Window nw = mon->stack[mon->current];
                     XRaiseWindow(dpy, nw);
                     XSetInputFocus(dpy, nw, RevertToPointerRoot, CurrentTime);
-                    SetFocusedMonitor(m);
+                    set_focused_monitor(m);
                 }
 
                 return;
@@ -396,7 +404,7 @@ void handle_enter(XEvent *e) {
         XRaiseWindow(dpy, w);
         XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
     }
-    SetFocusedMonitor(focused_monitor);
+    set_focused_monitor(focused_monitor);
     set_active_borders(w);
 }
 
@@ -446,7 +454,7 @@ int main(void) {
 
     int screen = DefaultScreen(dpy);
 
-    SetFocusedMonitor(monitor_under_pointer());
+    set_focused_monitor(monitor_under_pointer());
 
     // listen for new windows and our property
     XSelectInput(dpy, root,
