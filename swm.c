@@ -231,21 +231,22 @@ static int get_monitor_at_pointer() {
     return (focused_monitor >= 0) ? focused_monitor : 0; // fallback
 }
 
-void cycle(int dir) {
-    int mon = focused_monitor; //monitor_under_pointer();
-    Monitor *m = &monitors[mon];
+static void cycle(int dir) {
+    if (focused_monitor < 0 || focused_monitor >= num_monitors)
+        return;
+
+    Monitor *m = &monitors[focused_monitor];
     if (m->count <= 1) return;
 
     m->current = (m->current + dir + m->count) % m->count;
 
     Window w = m->stack[m->current];
-    fprintf(stderr, "Cycling to window %lu\n", w);
+    fprintf(stderr, "cycle: monitor %d → window 0x%lx\n", focused_monitor, w);
 
     set_active_borders(w);
     XRaiseWindow(dpy, w);
     XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
-
-    set_focused_monitor(mon);
+    XSync(dpy, False);
 }
 
 void handle_map(XEvent *e) {
@@ -269,56 +270,51 @@ void handle_map(XEvent *e) {
         }
     }
     // Pick monitor based on pointer location or rules
-    int mon = focused_monitor >= 0 ? focused_monitor : get_monitor_at_pointer();
+    int mon_idx = focused_monitor >= 0 ? focused_monitor : get_monitor_at_pointer();
 
     XClassHint ch;
-    XGetClassHint(dpy, w, &ch);
-    int rule_mon = -1;
+    if(XGetClassHint(dpy, w, &ch)) {
+        size_t nrules = sizeof(rules) / sizeof(rules[0]);
+        if(ch.res_class) {
+            for (size_t i = 0; i < nrules; ++i) {
+                if (strcmp(ch.res_class, rules[i].class) == 0 &&
+                    rules[i].monitor >= 0) {
+                    mon_idx = rules[i].monitor;
+                    break;
+                }
+            }
+        }
 
-    for (int i = 0; i < sizeof(rules)/sizeof(rules[0]); i++) {
-      if (ch.res_class && strcmp(ch.res_class, rules[i].class) == 0) {
-          if (rules[i].monitor >= 0)
-              mon = rules[i].monitor;
-      }
+        XFree(ch.res_name);
+        XFree(ch.res_class);
+    } else {
+        fprintf(stderr, "handle_map: XGetClassHint failed for 0x%lx\n", w);
     }
 
-    XFree(ch.res_name);
-    XFree(ch.res_class);
-
-    mon = rule_mon >= 0 ? rule_mon : mon;
-
-    Monitor *m = &monitors[mon];
-
+    Monitor *m = &monitors[mon_idx];
     if (m->count >= MAX_CLIENTS) {
-        fprintf(stderr, "Max clients reached on monitor %d\n", mon);
+        fprintf(stderr, "handle_map: max clients reached on monitor %d\n", mon_idx);
         return;
     }
 
     XSelectInput(dpy, w, EnterWindowMask | StructureNotifyMask);
-    // Add to stack
-    m->stack[m->count++] = w;
-    m->current = m->count - 1;
-    // Move and resize to monitor
-    int bw = border_width;
+    m->stack[m->count] = w;
+    m->current = m->count++;
     XMoveResizeWindow(dpy, w, 
-        screens[mon].x_org,
-        screens[mon].y_org,
-        screens[mon].width,
-        screens[mon].height
+        screens[mon_idx].x_org,
+        screens[mon_idx].y_org,
+        screens[mon_idx].width,
+        screens[mon_idx].height
     );
-    // Show and raise the window
     XMapWindow(dpy, w);
     XRaiseWindow(dpy, w);
-    // borders
     XSetWindowBorderWidth(dpy, w, border_width);
     set_active_borders(w);
-
-    // initial focus
     XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime); 
     XSync(dpy, False);
 }
 
-void handle_prop(XEvent *e) {
+static void handle_prop(XEvent *e) {
     if (e->xproperty.atom != cmd_atom) return;
 
     Atom actual;
