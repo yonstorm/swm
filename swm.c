@@ -70,7 +70,7 @@ static void set_active_borders(Window w) {
     last_focused = w;
 }
 
-void kill_focused_window() {
+static void kill_focused_window() {
     if (focused_monitor < 0 || focused_monitor >= num_monitors)
         return;
 
@@ -79,12 +79,13 @@ void kill_focused_window() {
         return;
 
     Window w = m->stack[m->current];
-
-    // Send WM_DELETE_WINDOW message if supported
-    Atom *protocols;
-    int n;
     Atom wm_delete = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
     Atom wm_protocols = XInternAtom(dpy, "WM_PROTOCOLS", False);
+
+    // Try polite shutdown first via WM_DELETE_WINDOW
+    Atom *protocols = NULL;
+    int n = 0;
+    int sent_delete = False;
 
     if (XGetWMProtocols(dpy, w, &protocols, &n)) {
       for (int i = 0; i < n; i++) {
@@ -97,15 +98,22 @@ void kill_focused_window() {
               ev.xclient.format = 32;
               ev.xclient.data.l[0] = wm_delete;
               ev.xclient.data.l[1] = CurrentTime;
-              XSendEvent(dpy, w, False, NoEventMask, &ev);
-              XFree(protocols);
-              return;
+              if (!XSendEvent(dpy, w, False, NoEventMask, &ev)) {
+                  fprintf(stderr, "kill_focused_window: WM_DELETE send failed for 0x%lx\n", w);
+              }
+              sent_delete = True;
+              break;
           }
       }
-      XFree(protocols);
     }
 
-    XKillClient(dpy, w);
+    XFree(protocols);
+
+    if(!sent_delete) {
+      XKillClient(dpy, w);
+    }
+    
+    XSync(dpy, False);
 }
 
 void move_window_relative(int dir) {
