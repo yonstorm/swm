@@ -179,40 +179,29 @@ static void move_window_relative(int dir) {
     XSync(dpy, False);
 }
 
-void focus_monitor_relative(int dir) {
+static void focus_monitor_relative(int dir) {
     if (focused_monitor < 0 || focused_monitor >= num_monitors)
         return;
 
-    int target = -1;
-    int current_x = screens[focused_monitor].x_org;
-
-    // Find neighbor monitor in the desired direction
-    for (int i = 0; i < num_monitors; i++) {
-        if (i == focused_monitor) continue;
-
-        int dx = screens[i].x_org - current_x;
-        if ((dir < 0 && dx < 0) || (dir > 0 && dx > 0)) {
-            if (target == -1 || abs(dx) < abs(screens[target].x_org - current_x)) {
-                target = i;
-            }
-        }
+    int target = find_neighbor_monitor(focused_monitor, dir);
+    if (target < 0) {
+        fprintf(stderr, "focus_monitor_relative: no neighbor in dir %d\n", dir);
+        return;
     }
 
-    if (target == -1)
-        return;
-
-    Monitor *m = &monitors[target];
     set_focused_monitor(target);
 
-    if (m->count == 0 || m->current < 0) return;
+    Monitor *m = &monitors[target];
+    if (m->count <= 0 || m->current < 0) {
+      return;
+    }
 
     Window w = m->stack[m->current];
     fprintf(stderr, "Focusing window %lu on monitor %d\n", w, target);
-    set_active_borders(w);
     XRaiseWindow(dpy, w);
     XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
-
-    fprintf(stderr, "Focus moved to monitor %d\n", target);
+    set_active_borders(w);
+    XSync(dpy, False);
 }
 
 int monitor_under_pointer() {
