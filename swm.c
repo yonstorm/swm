@@ -500,54 +500,73 @@ static void load_colors(void) {
 }
 
 int main(void) {
-    fprintf(stderr, "Starting Simple Window Manager\n");
-
-    XEvent ev;
+      fprintf(stderr, "Starting Simple Window Manager\n");
 
     if (!(dpy = XOpenDisplay(NULL))) {
         fprintf(stderr, "Cannot open display\n");
         return 1;
     }
     load_colors();
-
     XSetErrorHandler(xerror_handler);
-
     root     = DefaultRootWindow(dpy);
     cmd_atom = XInternAtom(dpy, "_MYWM_CMD", False);
 
-    screens = XineramaQueryScreens(dpy, &num_monitors);
-    if (screens == NULL) {
-        fprintf(stderr, "Xinerama not supported\n");
+    /* Grab substructure events; error means another WM is running */
+    if (XSelectInput(dpy, root,
+                     SubstructureRedirectMask |
+                     SubstructureNotifyMask  |
+                     PropertyChangeMask)
+        == BadAccess)
+    {
+        fprintf(stderr, "Error: another window manager is running\n");
         return 1;
     }
 
-    fprintf(stderr, "Found %d monitors\n", num_monitors);
-    // Initialize monitors
-    for (int i = 0; i < num_monitors; i++) {
-        monitors[i].count = 0;
-        monitors[i].current = -1;
-    }
-
-    int screen = DefaultScreen(dpy);
-
-    set_focused_monitor(get_monitor_at_pointer());
-
-    // listen for new windows and our property
-    XSelectInput(dpy, root,
-        SubstructureRedirectMask |
-        SubstructureNotifyMask  |
-        PropertyChangeMask
-    );
-
-    while (!XNextEvent(dpy, &ev)) {
-        switch (ev.type) {
-          case MapRequest:   handle_map(&ev);    break;
-          case PropertyNotify: handle_prop(&ev); break;
-          case DestroyNotify: handle_destroy(&ev); break;
-          case EnterNotify: handle_enter(&ev); break;
+    /* Adopt already‐mapped windows */
+    {
+        Window dummy1, *children;
+        unsigned int n;
+        if (XQueryTree(dpy, root, &dummy1, &dummy1, &children, &n)) {
+            for (unsigned int i = 0; i < n; ++i) {
+                XEvent ev = { .type = MapRequest, .xmaprequest.window = children[i] };
+                handle_map(&ev);
+            }
+            if (children) XFree(children);
         }
     }
 
+    /* Discover monitors */
+    screens = XineramaQueryScreens(dpy, &num_monitors);
+    if (!screens) {
+        fprintf(stderr, "Xinerama not supported\n");
+        return 1;
+    }
+    fprintf(stderr, "Found %d monitors\n", num_monitors);
+    for (int i = 0; i < num_monitors; ++i) {
+        monitors[i].count   = 0;
+        monitors[i].current = -1;
+    }
+
+    /* Set initial focus */
+    set_focused_monitor(get_monitor_at_pointer());
+    XSync(dpy, False);
+
+    /* Main event loop */
+    XEvent ev;
+    while (XNextEvent(dpy, &ev) == 0) {
+        switch (ev.type) {
+          case MapRequest:      handle_map(&ev);     break;
+          case UnmapNotify:     handle_destroy(&ev); break;
+          case DestroyNotify:   handle_destroy(&ev); break;
+          //case ConfigureRequest:handle_configure(&ev); break;
+          case PropertyNotify:  handle_prop(&ev);    break;
+          case EnterNotify:     handle_enter(&ev);   break;
+          /* add more as needed */
+        }
+    }
+
+    /* Cleanup */
+    XFree(screens);
     XCloseDisplay(dpy);
     return 0;
 }
