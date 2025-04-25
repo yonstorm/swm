@@ -444,23 +444,41 @@ static void handle_destroy(XEvent *e) {
 }
 
 
-void handle_enter(XEvent *e) {
-    Window w = e->xcrossing.window;
+static void handle_enter(XEvent *e) {
+    /* Validate pointer focus state */
+    if (focused_monitor < 0 || focused_monitor >= num_monitors) return;
 
-    fprintf(stderr, "Pointer entered window %lu\n", w);
-
-    // Only trigger for real pointer motion (not fake events)
-    if (e->xcrossing.mode != NotifyNormal || e->xcrossing.detail == NotifyInferior)
+    /* Only real enter events */
+    if (e->xcrossing.mode != NotifyNormal ||
+        e->xcrossing.detail == NotifyInferior)
         return;
 
-    // Only set focus if it's not already focused
+    Window w = e->xcrossing.window;
+
+    /* Ignore windows we don’t manage */
+    //if (!is_managed_window(w)) return;
+
+    /* Avoid re-focusing the same window repeatedly */
+    static Window last_entered = 0;
+    if (last_entered == w) return;
+    last_entered = w;
+
+    /* Check it’s viewable before focusing */
     XWindowAttributes wa;
-    if (XGetWindowAttributes(dpy, w, &wa) && wa.map_state == IsViewable) {
-        XRaiseWindow(dpy, w);
-        XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
+    if (!XGetWindowAttributes(dpy, w, &wa) ||
+        wa.map_state != IsViewable) {
+        fprintf(stderr, "handle_enter: cannot focus 0x%lx (not viewable)\n", w);
+        return;
     }
-    set_focused_monitor(focused_monitor);
+
+    /* Do the focus/raise/borders in one block */
+    fprintf(stderr, "handle_enter: focusing window 0x%lx\n", w);
+    XRaiseWindow(dpy, w);
+    XSetInputFocus(dpy, w, RevertToPointerRoot, CurrentTime);
     set_active_borders(w);
+    set_focused_monitor(focused_monitor);
+
+    XSync(dpy, False);
 }
 
 void load_colors(void) {
