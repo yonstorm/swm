@@ -481,19 +481,22 @@ static void handle_enter(XEvent *e) {
     XSync(dpy, False);
 }
 
-void load_colors(void) {
-    XColor col;
-    Colormap cmap = DefaultColormap(dpy, DefaultScreen(dpy));
+static void load_colors(void) {
+  int scr = DefaultScreen(dpy);
+    Colormap cmap = DefaultColormap(dpy, scr);
 
-    if (XAllocNamedColor(dpy, cmap, FOCUSED_BORDER_COLOR, &col, &col))
-        focused_border_color = col.pixel;
-    else
-        focused_border_color = WhitePixel(dpy, DefaultScreen(dpy));
+    // Helper to allocate a named color or fallback 
+    unsigned long alloc_or_fallback(const char *name, unsigned long fb) {
+        XColor col;
+        if (XAllocNamedColor(dpy, cmap, name, &col, &col)) {
+            return col.pixel;
+        }
+        fprintf(stderr, "load_colors: could not alloc '%s', using fallback\n", name);
+        return fb;
+    }
 
-    if (XAllocNamedColor(dpy, cmap, UNFOCUSED_BORDER_COLOR, &col, &col))
-        unfocused_border_color = col.pixel;
-    else
-        unfocused_border_color = BlackPixel(dpy, DefaultScreen(dpy));
+    focused_border_color   = alloc_or_fallback(FOCUSED_BORDER_COLOR,   WhitePixel(dpy, scr));
+    unfocused_border_color = alloc_or_fallback(UNFOCUSED_BORDER_COLOR, BlackPixel(dpy, scr));
 }
 
 int main(void) {
