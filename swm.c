@@ -386,36 +386,61 @@ static void handle_prop(XEvent *e) {
     XFree(data);
 }
 
-void handle_destroy(XEvent *e) {
-    Window w = e->xdestroywindow.window;
-    fprintf(stderr, "Destroying window %lu\n", w);
-
-    for (int m = 0; m < num_monitors; m++) {
-        Monitor *mon = &monitors[m];
-        for (int i = 0; i < mon->count; i++) {
-            if (mon->stack[i] == w) {
-                // Shift stack left to remove window
-                for (int j = i; j < mon->count - 1; j++) {
+/*
+ * remove_client: locate and remove window w from monitors[]
+ * @w: the window to remove
+ * @out_mon: if non-NULL, set to the monitor index it was on
+ * @out_idx: if non-NULL, set to the index in that monitor’s stack
+ * Returns true if the window was found & removed, false otherwise.
+ */
+static int remove_client(Window w, int *out_mon, int *out_idx)
+{
+    for (int mi = 0; mi < num_monitors; ++mi) {
+        Monitor *mon = &monitors[mi];
+        for (int ci = 0; ci < mon->count; ++ci) {
+            if (mon->stack[ci] == w) {
+                /* shift left */
+                for (int j = ci; j + 1 < mon->count; ++j) {
                     mon->stack[j] = mon->stack[j+1];
                 }
                 mon->count--;
-
-                // Update current index
+                /* adjust current */
                 if (mon->current >= mon->count)
                     mon->current = mon->count - 1;
-
-                // re-focus top window if any left
-                if (mon->count > 0 && mon->current >= 0) {
-                    Window nw = mon->stack[mon->current];
-                    XRaiseWindow(dpy, nw);
-                    XSetInputFocus(dpy, nw, RevertToPointerRoot, CurrentTime);
-                    set_focused_monitor(m);
-                }
-
-                return;
+                /* report back */
+                if (out_mon) *out_mon = mi;
+                if (out_idx) *out_idx = ci;
+                return True;
             }
         }
     }
+    return False;
+}
+
+static void handle_destroy(XEvent *e) {
+    Window w = e->xdestroywindow.window;
+    fprintf(stderr, "handle_destroy: destroying window 0x%lx\n", w);
+
+    int mon_idx, idx;
+    if (!remove_client(w, &mon_idx, &idx)) {
+        fprintf(stderr, "handle_destroy: window 0x%lx not managed\n", w);
+        return;
+    }
+
+    Monitor *mon = &monitors[mon_idx];
+    // If there is still a window on that monitor, focus it
+    if (mon->count > 0) {
+        Window nw = mon->stack[mon->current];
+        fprintf(stderr,
+                "handle_destroy: new focus 0x%lx on monitor %d\n",
+                nw, mon_idx);
+        XRaiseWindow(dpy, nw);
+        XSetInputFocus(dpy, nw, RevertToPointerRoot, CurrentTime);
+        set_active_borders(nw);
+        set_focused_monitor(mon_idx);
+    }
+
+    XSync(dpy, False);
 }
 
 
