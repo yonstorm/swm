@@ -1,0 +1,5 @@
+#!/bin/sh
+
+sxhkd &
+~/.config/scripts/splitmon
+~/projects/linux/swm/swm > ~/.swm.log 2>&1

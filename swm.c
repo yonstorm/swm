@@ -565,7 +565,6 @@ int main(void) {
         }
     }
 
-    /* Cleanup */
     XFree(screens);
     XCloseDisplay(dpy);
     return 0;
