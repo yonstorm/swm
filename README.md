@@ -261,7 +261,3 @@ You can customize key bindings in your sxhkd configuration to match your prefere
 
 ### Window won't close
 The kill window function tries graceful termination first, then force kills. If a window still won't close, it may be a system-level issue or the application may be completely frozen.
-
-## License
-
-This project follows the suckless philosophy of simplicity and minimalism. Feel free to modify and distribute according to your needs.
