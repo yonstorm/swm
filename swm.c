@@ -210,6 +210,24 @@ void kill_focused_window(void) {
     XFlush(wm.display);
 }
 
+void move_focused_window_to_zone_direction(int direction) {
+    if (wm.focused_client == NULL || wm.zone_count <= 1) return;
+    
+    /* Calculate target zone */
+    int target_zone = get_next_zone(wm.active_zone, wm.zone_count, direction);
+    
+    /* Update client's zone assignment */
+    wm.focused_client->zone_index = target_zone;
+    
+    /* Resize and move window to new zone */
+    resize_window_to_zone(wm.display, wm.focused_client->window, &wm.zones[target_zone]);
+    
+    /* Update active zone to follow the window */
+    wm.active_zone = target_zone;
+    
+    XFlush(wm.display);
+}
+
 /* Event handlers */
 
 void handle_map_request(XMapRequestEvent *event) {
@@ -286,6 +304,12 @@ void handle_property_notify(XPropertyEvent *event) {
                         break;
                     case CMD_KILL_WINDOW:
                         kill_focused_window();
+                        break;
+                    case CMD_MOVE_WINDOW_LEFT:
+                        move_focused_window_to_zone_direction(-1);
+                        break;
+                    case CMD_MOVE_WINDOW_RIGHT:
+                        move_focused_window_to_zone_direction(1);
                         break;
                     case CMD_QUIT:
                         exit(0);

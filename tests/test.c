@@ -181,6 +181,69 @@ void test_window_cycling(void) {
     printf("✓ Window cycling test passed\n");
 }
 
+void test_window_movement_logic(void) {
+    printf("Testing window movement logic...\n");
+    
+    /* Test zone calculation for window movement */
+    
+    /* Test moving right in a 3-zone setup */
+    int target_zone = get_next_zone(0, 3, 1);  /* Move right from zone 0 */
+    assert(target_zone == 1);
+    
+    target_zone = get_next_zone(1, 3, 1);  /* Move right from zone 1 */
+    assert(target_zone == 2);
+    
+    target_zone = get_next_zone(2, 3, 1);  /* Move right from zone 2 (wrap) */
+    assert(target_zone == 0);
+    
+    /* Test moving left in a 3-zone setup */
+    target_zone = get_next_zone(0, 3, -1);  /* Move left from zone 0 (wrap) */
+    assert(target_zone == 2);
+    
+    target_zone = get_next_zone(1, 3, -1);  /* Move left from zone 1 */
+    assert(target_zone == 0);
+    
+    target_zone = get_next_zone(2, 3, -1);  /* Move left from zone 2 */
+    assert(target_zone == 1);
+    
+    /* Test with 5-zone setup (mixed monitors) */
+    target_zone = get_next_zone(0, 5, 1);  /* Move right from zone 0 */
+    assert(target_zone == 1);
+    
+    target_zone = get_next_zone(4, 5, 1);  /* Move right from last zone (wrap) */
+    assert(target_zone == 0);
+    
+    target_zone = get_next_zone(0, 5, -1);  /* Move left from first zone (wrap) */
+    assert(target_zone == 4);
+    
+    target_zone = get_next_zone(3, 5, -1);  /* Move left from zone 3 */
+    assert(target_zone == 2);
+    
+    /* Test edge cases */
+    
+    /* Single zone - movement should stay in same zone */
+    target_zone = get_next_zone(0, 1, 1);
+    assert(target_zone == 0);
+    
+    target_zone = get_next_zone(0, 1, -1);
+    assert(target_zone == 0);
+    
+    /* Two zones */
+    target_zone = get_next_zone(0, 2, 1);
+    assert(target_zone == 1);
+    
+    target_zone = get_next_zone(1, 2, 1);
+    assert(target_zone == 0);
+    
+    target_zone = get_next_zone(0, 2, -1);
+    assert(target_zone == 1);
+    
+    target_zone = get_next_zone(1, 2, -1);
+    assert(target_zone == 0);
+    
+    printf("✓ Window movement logic test passed\n");
+}
+
 int main(void) {
     printf("Running SWM pure function tests...\n\n");
     
@@ -189,6 +252,7 @@ int main(void) {
     test_zone_cycling();
     test_mixed_monitors();
     test_window_cycling();
+    test_window_movement_logic();
     
     printf("\n✓ All tests passed! Core logic is working correctly.\n");
     return 0;

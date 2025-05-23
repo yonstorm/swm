@@ -256,6 +256,70 @@ test_multiple_windows() {
     success "Multiple window test completed"
 }
 
+test_window_movement() {
+    log "Testing window movement functionality..."
+    
+    # Start multiple windows in different scenarios
+    log "Starting test windows for movement testing..."
+    DISPLAY="$XVFB_DISPLAY" "$SCRIPT_DIR/test_client" 15 &
+    PID1=$!
+    sleep 0.5
+    
+    DISPLAY="$XVFB_DISPLAY" "$SCRIPT_DIR/test_client" 15 &
+    PID2=$!
+    sleep 0.5
+    
+    DISPLAY="$XVFB_DISPLAY" "$SCRIPT_DIR/test_client" 15 &
+    PID3=$!
+    sleep 1
+    
+    # Test moving window to the right
+    log "Testing move window right..."
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" move-window-right
+    sleep 0.5
+    
+    # Test moving window to the left
+    log "Testing move window left..."
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" move-window-left
+    sleep 0.5
+    
+    # Test multiple moves in sequence
+    log "Testing multiple window moves..."
+    for i in {1..3}; do
+        DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" move-window-right
+        sleep 0.3
+    done
+    
+    for i in {1..2}; do
+        DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" move-window-left
+        sleep 0.3
+    done
+    
+    # Test move with window cycling
+    log "Testing move combined with window cycling..."
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" cycle-window-next
+    sleep 0.2
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" move-window-right
+    sleep 0.3
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" cycle-window-prev
+    sleep 0.2
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" move-window-left
+    sleep 0.3
+    
+    # Test short command aliases
+    log "Testing move window command aliases..."
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" mwr  # move-window-right alias
+    sleep 0.3
+    DISPLAY="$XVFB_DISPLAY" "$PROJECT_ROOT/swmctl" mwl  # move-window-left alias
+    sleep 0.3
+    
+    # Clean up test windows
+    log "Cleaning up movement test windows..."
+    kill "$PID1" "$PID2" "$PID3" 2>/dev/null || true
+    
+    success "Window movement test completed"
+}
+
 run_interactive_test() {
     log "Starting interactive test mode..."
     log "SWM is running on display $XVFB_DISPLAY"
@@ -271,6 +335,8 @@ run_interactive_test() {
     fi
     
     log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl cycle-window-next"
+    log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl move-window-left"
+    log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl move-window-right"
     log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl kill-window"
     log ""
     log "Available terminal: $AVAILABLE_TERMINAL"
@@ -367,6 +433,7 @@ main() {
         
         if [ "$BASIC_ONLY" = false ]; then
             test_multiple_windows || exit 1
+            test_window_movement || exit 1
         fi
         
         success "All tests completed successfully!"

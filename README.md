@@ -89,6 +89,8 @@ The `swmctl` script provides an easy way to send commands:
 **Window Management:**
 ```bash
 ./swmctl kill-window          # or: ./swmctl kw
+./swmctl move-window-left     # or: ./swmctl mwl
+./swmctl move-window-right    # or: ./swmctl mwr
 ```
 
 **Other Commands:**
@@ -119,6 +121,10 @@ The `swmctl` script provides an easy way to send commands:
    - `Super + l`: Alternative right zone
    - `Super + h`: Alternative left zone
 
+**Window Movement:**
+   - `Super + Shift + h`: Move focused window to left monitor/zone
+   - `Super + Shift + l`: Move focused window to right monitor/zone
+
 **System:**
    - `Super + Shift + q`: Quit window manager
 
@@ -135,6 +141,10 @@ xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 5  # Left zone
 
 # Window management
 xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 7  # Kill focused window
+
+# Move window between monitors
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 9  # Move window left
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 10 # Move window right
 
 # Other commands
 xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 1  # Legacy window cycle
@@ -188,6 +198,8 @@ The window manager responds to the following commands via the `_SWM_COMMAND` roo
 | `CMD_CYCLE_MONITOR_RIGHT` | 6 | Cycle to right zone |
 | `CMD_KILL_WINDOW` | 7 | Kill currently focused window |
 | `CMD_QUIT` | 8 | Quit window manager |
+| `CMD_MOVE_WINDOW_LEFT` | 9 | Move focused window to left zone |
+| `CMD_MOVE_WINDOW_RIGHT` | 10 | Move focused window to right zone |
 
 ### Window Termination
 The kill window function implements a graceful termination approach:
@@ -199,6 +211,12 @@ This ensures well-behaved applications can clean up properly while still handlin
 ## Testing
 
 The window manager includes comprehensive tests for core logic and full integration testing using Xvfb (virtual X server). This allows you to test SWM without disrupting your current window manager.
+
+The test suite covers:
+- **Core Logic**: Zone calculation, window cycling, and window movement logic
+- **Integration Tests**: Full window manager functionality including window movement between zones
+- **Ultrawide Support**: Multi-zone window management and movement on ultrawide monitors
+- **Command Interface**: All swmctl commands including move-window-left and move-window-right
 
 All test files are located in the `tests/` directory. See [`tests/README.md`](tests/README.md) for detailed testing documentation.
 

@@ -24,7 +24,9 @@ enum swm_command {
     CMD_CYCLE_MONITOR_LEFT,
     CMD_CYCLE_MONITOR_RIGHT,
     CMD_KILL_WINDOW,
-    CMD_QUIT
+    CMD_QUIT,
+    CMD_MOVE_WINDOW_LEFT,
+    CMD_MOVE_WINDOW_RIGHT
 };
 
 #endif /* CONFIG_H */ 

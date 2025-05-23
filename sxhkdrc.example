@@ -35,6 +35,13 @@ super + l
 super + h
     swmctl cycle-monitor-left
 
+# Move window between monitors
+super + shift + h
+    swmctl move-window-left
+
+super + shift + l
+    swmctl move-window-right
+
 # Quit window manager (use with caution)
 super + shift + q
     swmctl quit

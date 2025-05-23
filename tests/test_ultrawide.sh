@@ -223,6 +223,44 @@ test_ultrawide_zones() {
         sleep 0.3
     done
     
+    # Test window movement between zones
+    log "Testing window movement between ultrawide zones..."
+    
+    # Move focused window to the right through all zones
+    log "Moving window right through all zones..."
+    for i in {1..4}; do
+        log "Moving window right (iteration $i)..."
+        DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl move-window-right
+        sleep 0.5
+    done
+    
+    # Move focused window to the left through all zones
+    log "Moving window left through all zones..."
+    for i in {1..3}; do
+        log "Moving window left (iteration $i)..."
+        DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl move-window-left
+        sleep 0.5
+    done
+    
+    # Test move with different focused windows
+    log "Testing window movement with different focused windows..."
+    DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl cycle-window-next
+    sleep 0.3
+    DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl move-window-right
+    sleep 0.5
+    
+    DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl cycle-window-prev
+    sleep 0.3
+    DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl move-window-left
+    sleep 0.5
+    
+    # Test command aliases
+    log "Testing window movement command aliases..."
+    DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl mwr  # move-window-right alias
+    sleep 0.3
+    DISPLAY="$XVFB_DISPLAY" $PROJECT_ROOT/swmctl mwl  # move-window-left alias
+    sleep 0.3
+    
     # Clean up test windows
     log "Cleaning up test windows..."
     kill "$PID1" "$PID2" "$PID3" 2>/dev/null || true
@@ -302,6 +340,8 @@ run_interactive_ultrawide() {
     log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl cycle-monitor-right"
     log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl cycle-monitor-left"
     log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl cycle-window-next"
+    log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl move-window-left"
+    log "  DISPLAY=$XVFB_DISPLAY $PROJECT_ROOT/swmctl move-window-right"
     log ""
     log "Available terminal: $AVAILABLE_TERMINAL"
     log "Press Ctrl+C to stop the test environment"

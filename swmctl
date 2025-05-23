@@ -27,11 +27,17 @@ case "$1" in
     "kill-window"|"kw")
         xprop -root -f $PROPERTY 32i -set $PROPERTY 7
         ;;
+    "move-window-left"|"mwl")
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 9
+        ;;
+    "move-window-right"|"mwr")
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 10
+        ;;
     "quit")
         xprop -root -f $PROPERTY 32i -set $PROPERTY 8
         ;;
     *)
-        echo "Usage: $0 {cycle-window|cw|cycle-window-next|cwn|cycle-window-prev|cwp|cycle-monitor|cm|cycle-monitor-left|cml|cycle-monitor-right|cmr|kill-window|kw|quit}"
+        echo "Usage: $0 {cycle-window|cw|cycle-window-next|cwn|cycle-window-prev|cwp|cycle-monitor|cm|cycle-monitor-left|cml|cycle-monitor-right|cmr|kill-window|kw|move-window-left|mwl|move-window-right|mwr|quit}"
         echo ""
         echo "Commands:"
         echo "  cycle-window, cw         - Cycle focus forward through windows on current zone"
@@ -41,6 +47,8 @@ case "$1" in
         echo "  cycle-monitor-left, cml  - Cycle focus left through logical monitors/zones"
         echo "  cycle-monitor-right, cmr - Cycle focus right through logical monitors/zones"
         echo "  kill-window, kw          - Kill the currently focused window"
+        echo "  move-window-left, mwl    - Move focused window to left monitor/zone"
+        echo "  move-window-right, mwr   - Move focused window to right monitor/zone"
         echo "  quit                     - Quit the window manager"
         exit 1
         ;;
