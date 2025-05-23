@@ -9,19 +9,27 @@ super + Tab
 super + shift + Tab
     swmctl cycle-window-prev
 
+# Monitor cycling - right
 super + grave
-    swmctl cycle-monitor
+    swmctl cycle-monitor-right
 
-# Alternative bindings
+# Monitor cycling - left
+super + shift + grave
+    swmctl cycle-monitor-left
+
+# Alternative window bindings
 super + j
     swmctl cycle-window-next
 
 super + k
     swmctl cycle-window-prev
 
-# Monitor cycling
-super + m
-    swmctl cycle-monitor
+# Alternative monitor bindings
+super + l
+    swmctl cycle-monitor-right
+
+super + h
+    swmctl cycle-monitor-left
 
 # Quit window manager (use with caution)
 super + shift + q

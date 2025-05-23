@@ -133,7 +133,29 @@ void cycle_monitor_focus(void) {
     }
     
     /* Move to next zone */
-    wm.active_zone = get_next_zone(wm.active_zone, wm.zone_count);
+    wm.active_zone = get_next_zone(wm.active_zone, wm.zone_count, 1);
+    
+    /* Find and focus a window in the new zone */
+    Client *window_in_zone = get_window_in_zone(wm.clients, wm.active_zone);
+    if (window_in_zone != NULL) {
+        wm.focused_client = window_in_zone;
+        set_window_border(wm.display, window_in_zone->window, FOCUS_COLOR);
+        focus_window(wm.display, window_in_zone->window);
+    } else {
+        wm.focused_client = NULL;
+    }
+}
+
+void cycle_monitor_focus_direction(int direction) {
+    if (wm.zone_count <= 1) return;
+    
+    /* Unfocus current window */
+    if (wm.focused_client != NULL) {
+        set_window_border(wm.display, wm.focused_client->window, UNFOCUS_COLOR);
+    }
+    
+    /* Move to next zone in specified direction */
+    wm.active_zone = get_next_zone(wm.active_zone, wm.zone_count, direction);
     
     /* Find and focus a window in the new zone */
     Client *window_in_zone = get_window_in_zone(wm.clients, wm.active_zone);
@@ -213,6 +235,12 @@ void handle_property_notify(XPropertyEvent *event) {
                         break;
                     case CMD_CYCLE_MONITOR:
                         cycle_monitor_focus();
+                        break;
+                    case CMD_CYCLE_MONITOR_LEFT:
+                        cycle_monitor_focus_direction(-1);
+                        break;
+                    case CMD_CYCLE_MONITOR_RIGHT:
+                        cycle_monitor_focus_direction(1);
                         break;
                     case CMD_QUIT:
                         exit(0);

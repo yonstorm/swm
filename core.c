@@ -116,10 +116,18 @@ Client *get_next_window_in_zone(Client *clients, int zone_index, Client *current
     return zone_clients[next_index];
 }
 
-/* Get next zone index for cycling */
-int get_next_zone(int current_zone, int zone_count) {
+/* Get next zone index for cycling with direction support */
+int get_next_zone(int current_zone, int zone_count, int direction) {
     assert(zone_count > 0);
-    return (current_zone + 1) % zone_count;
+    assert(direction == 1 || direction == -1);
+    
+    if (direction == 1) {
+        /* Right: next zone */
+        return (current_zone + 1) % zone_count;
+    } else {
+        /* Left: previous zone */
+        return (current_zone - 1 + zone_count) % zone_count;
+    }
 }
 
 /* Find a window in the specified zone */

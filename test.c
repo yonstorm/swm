@@ -69,16 +69,27 @@ void test_ultrawide_monitor_zones(void) {
 void test_zone_cycling(void) {
     printf("Testing zone cycling logic...\n");
     
-    /* Test with 3 zones */
-    assert(get_next_zone(0, 3) == 1);
-    assert(get_next_zone(1, 3) == 2);
-    assert(get_next_zone(2, 3) == 0);  /* Wrap around */
+    /* Test with 3 zones - right direction */
+    assert(get_next_zone(0, 3, 1) == 1);
+    assert(get_next_zone(1, 3, 1) == 2);
+    assert(get_next_zone(2, 3, 1) == 0);  /* Wrap around */
+    
+    /* Test with 3 zones - left direction */
+    assert(get_next_zone(0, 3, -1) == 2);  /* Wrap around */
+    assert(get_next_zone(1, 3, -1) == 0);
+    assert(get_next_zone(2, 3, -1) == 1);
     
     /* Test with 1 zone */
-    assert(get_next_zone(0, 1) == 0);
+    assert(get_next_zone(0, 1, 1) == 0);
+    assert(get_next_zone(0, 1, -1) == 0);
     
-    /* Test with 5 zones */
-    assert(get_next_zone(4, 5) == 0);  /* Wrap around */
+    /* Test with 5 zones - right direction */
+    assert(get_next_zone(4, 5, 1) == 0);  /* Wrap around */
+    assert(get_next_zone(3, 5, 1) == 4);
+    
+    /* Test with 5 zones - left direction */
+    assert(get_next_zone(0, 5, -1) == 4);  /* Wrap around */
+    assert(get_next_zone(1, 5, -1) == 0);
     
     printf("✓ Zone cycling test passed\n");
 }
