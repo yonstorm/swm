@@ -26,9 +26,12 @@ clean:
 install: $(TARGET)
 	cp $(TARGET) /usr/local/bin/
 	chmod 755 /usr/local/bin/$(TARGET)
+	cp swmctl /usr/local/bin/
+	chmod 755 /usr/local/bin/swmctl
 
 uninstall:
 	rm -f /usr/local/bin/$(TARGET)
+	rm -f /usr/local/bin/swmctl
 
 # Development targets
 debug: CFLAGS += -g -DDEBUG

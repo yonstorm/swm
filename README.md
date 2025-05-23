@@ -53,10 +53,14 @@ make debug
 sudo make install
 ```
 
+This installs both `swm` and `swmctl` to `/usr/local/bin/`, making them available system-wide.
+
 ### Uninstallation
 ```bash
 sudo make uninstall
 ```
+
+This removes both `swm` and `swmctl` from the system.
 
 ## Usage
 
@@ -70,32 +74,32 @@ sudo make uninstall
 ### Controlling the Window Manager
 
 #### Using swmctl (Recommended)
-The `swmctl` script provides an easy way to send commands:
+The `swmctl` script provides an easy way to send commands. After installation, you can use `swmctl` directly. During development, use `./swmctl`.
 
 **Window Cycling:**
 ```bash
-./swmctl cycle-window-next    # or: ./swmctl cwn
-./swmctl cycle-window-prev    # or: ./swmctl cwp
-./swmctl cycle-window         # or: ./swmctl cw (defaults to next)
+swmctl cycle-window-next    # or: swmctl cwn
+swmctl cycle-window-prev    # or: swmctl cwp
+swmctl cycle-window         # or: swmctl cw (defaults to next)
 ```
 
 **Monitor/Zone Cycling:**
 ```bash
-./swmctl cycle-monitor-right  # or: ./swmctl cmr
-./swmctl cycle-monitor-left   # or: ./swmctl cml
-./swmctl cycle-monitor        # or: ./swmctl cm (defaults to right)
+swmctl cycle-monitor-right  # or: swmctl cmr
+swmctl cycle-monitor-left   # or: swmctl cml
+swmctl cycle-monitor        # or: swmctl cm (defaults to right)
 ```
 
 **Window Management:**
 ```bash
-./swmctl kill-window          # or: ./swmctl kw
-./swmctl move-window-left     # or: ./swmctl mwl
-./swmctl move-window-right    # or: ./swmctl mwr
+swmctl kill-window          # or: swmctl kw
+swmctl move-window-left     # or: swmctl mwl
+swmctl move-window-right    # or: swmctl mwr
 ```
 
 **Other Commands:**
 ```bash
-./swmctl quit
+swmctl quit
 ```
 
 #### Using sxhkd (Recommended Setup)
@@ -105,6 +109,7 @@ The `swmctl` script provides an easy way to send commands:
    mkdir -p ~/.config/sxhkd
    cp sxhkdrc.example ~/.config/sxhkd/sxhkdrc
    ```
+   **Note**: The example configuration assumes `swmctl` is installed system-wide. If running from the development directory, update the commands to use `./swmctl` instead.
 3. Start sxhkd: `sxhkd &`
 4. Use the configured key bindings:
 
