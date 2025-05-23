@@ -14,10 +14,12 @@ A minimalist X11 window manager with multi-monitor and ultrawide support, follow
 - New windows open on the currently active logical monitor
 - Windows are sized to fit their assigned logical monitor/zone
 - Highlights the focused window with a distinct border color
+- Graceful window closing with fallback to force kill
 
 ### Focus Control
 - **Directional Window Focus**: Cycle forward/backward through windows on the current logical monitor
 - **Directional Monitor Focus**: Cycle left/right between logical monitors/zones
+- **Window Termination**: Kill the currently focused window
 - Intuitive directional controls with proper wrap-around
 
 ### External Command Interface
@@ -84,6 +86,11 @@ The `swmctl` script provides an easy way to send commands:
 ./swmctl cycle-monitor        # or: ./swmctl cm (defaults to right)
 ```
 
+**Window Management:**
+```bash
+./swmctl kill-window          # or: ./swmctl kw
+```
+
 **Other Commands:**
 ```bash
 ./swmctl quit
@@ -104,6 +111,7 @@ The `swmctl` script provides an easy way to send commands:
    - `Super + Shift + Tab`: Previous window
    - `Super + j`: Alternative next window
    - `Super + k`: Alternative previous window
+   - `Super + Shift + c`: Kill focused window
 
 **Monitor/Zone Management:**
    - `Super + grave`: Right zone
@@ -125,10 +133,13 @@ xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 4  # Previous window
 xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 6  # Right zone
 xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 5  # Left zone
 
+# Window management
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 7  # Kill focused window
+
 # Other commands
 xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 1  # Legacy window cycle
 xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 2  # Legacy monitor cycle
-xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 7  # Quit
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 8  # Quit
 ```
 
 ## Configuration
@@ -175,7 +186,15 @@ The window manager responds to the following commands via the `_SWM_COMMAND` roo
 | `CMD_CYCLE_WINDOW_PREV` | 4 | Cycle to previous window |
 | `CMD_CYCLE_MONITOR_LEFT` | 5 | Cycle to left zone |
 | `CMD_CYCLE_MONITOR_RIGHT` | 6 | Cycle to right zone |
-| `CMD_QUIT` | 7 | Quit window manager |
+| `CMD_KILL_WINDOW` | 7 | Kill currently focused window |
+| `CMD_QUIT` | 8 | Quit window manager |
+
+### Window Termination
+The kill window function implements a graceful termination approach:
+1. **First attempt**: Send `WM_DELETE_WINDOW` message if the window supports it
+2. **Fallback**: Use `XKillClient()` to force terminate unresponsive windows
+
+This ensures well-behaved applications can clean up properly while still handling misbehaving applications.
 
 ## Testing
 
@@ -224,6 +243,9 @@ The directional logic follows this convention:
 - **Monitors**: Left (-1) ← → Right (1)
 
 You can customize key bindings in your sxhkd configuration to match your preferences.
+
+### Window won't close
+The kill window function tries graceful termination first, then force kills. If a window still won't close, it may be a system-level issue or the application may be completely frozen.
 
 ## License
 

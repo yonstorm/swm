@@ -9,6 +9,10 @@ super + Tab
 super + shift + Tab
     swmctl cycle-window-prev
 
+# Kill focused window
+super + shift + c
+    swmctl kill-window
+
 # Monitor cycling - right
 super + grave
     swmctl cycle-monitor-right

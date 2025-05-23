@@ -168,6 +168,48 @@ void cycle_monitor_focus_direction(int direction) {
     }
 }
 
+void kill_focused_window(void) {
+    if (wm.focused_client == NULL) return;
+    
+    Window window = wm.focused_client->window;
+    
+    /* Try to close window gracefully first (WM_DELETE_WINDOW) */
+    Atom wm_delete_window = XInternAtom(wm.display, "WM_DELETE_WINDOW", False);
+    Atom wm_protocols = XInternAtom(wm.display, "WM_PROTOCOLS", False);
+    
+    Atom *protocols;
+    int n_protocols;
+    bool supports_delete = false;
+    
+    if (XGetWMProtocols(wm.display, window, &protocols, &n_protocols)) {
+        for (int i = 0; i < n_protocols; i++) {
+            if (protocols[i] == wm_delete_window) {
+                supports_delete = true;
+                break;
+            }
+        }
+        XFree(protocols);
+    }
+    
+    if (supports_delete) {
+        /* Send WM_DELETE_WINDOW message */
+        XEvent event;
+        event.type = ClientMessage;
+        event.xclient.window = window;
+        event.xclient.message_type = wm_protocols;
+        event.xclient.format = 32;
+        event.xclient.data.l[0] = wm_delete_window;
+        event.xclient.data.l[1] = CurrentTime;
+        
+        XSendEvent(wm.display, window, False, NoEventMask, &event);
+    } else {
+        /* Force kill the window */
+        XKillClient(wm.display, window);
+    }
+    
+    XFlush(wm.display);
+}
+
 /* Event handlers */
 
 void handle_map_request(XMapRequestEvent *event) {
@@ -241,6 +283,9 @@ void handle_property_notify(XPropertyEvent *event) {
                         break;
                     case CMD_CYCLE_MONITOR_RIGHT:
                         cycle_monitor_focus_direction(1);
+                        break;
+                    case CMD_KILL_WINDOW:
+                        kill_focused_window();
                         break;
                     case CMD_QUIT:
                         exit(0);

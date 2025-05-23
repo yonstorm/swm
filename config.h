@@ -23,6 +23,7 @@ enum swm_command {
     CMD_CYCLE_WINDOW_PREV,
     CMD_CYCLE_MONITOR_LEFT,
     CMD_CYCLE_MONITOR_RIGHT,
+    CMD_KILL_WINDOW,
     CMD_QUIT
 };
 
