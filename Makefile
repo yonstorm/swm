@@ -24,10 +24,12 @@ clean:
 	rm -f $(OBJECTS) $(TARGET) tests/test_swm tests/test_client
 
 install: $(TARGET)
-	cp $(TARGET) /usr/local/bin/
-	chmod 755 /usr/local/bin/$(TARGET)
-	cp swmctl /usr/local/bin/
-	chmod 755 /usr/local/bin/swmctl
+	cp $(TARGET) /usr/local/bin/$(TARGET).new
+	chmod 755 /usr/local/bin/$(TARGET).new
+	mv /usr/local/bin/$(TARGET).new /usr/local/bin/$(TARGET)
+	cp swmctl /usr/local/bin/swmctl.new
+	chmod 755 /usr/local/bin/swmctl.new
+	mv /usr/local/bin/swmctl.new /usr/local/bin/swmctl
 
 uninstall:
 	rm -f /usr/local/bin/$(TARGET)
