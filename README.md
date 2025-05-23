@@ -16,8 +16,9 @@ A minimalist X11 window manager with multi-monitor and ultrawide support, follow
 - Highlights the focused window with a distinct border color
 
 ### Focus Control
-- **Cycle Window Focus**: Allows cycling keyboard focus through the windows on the current logical monitor
-- **Cycle Logical Monitor Focus**: Allows changing which logical monitor (or zone) is active, moving focus to a window on it
+- **Directional Window Focus**: Cycle forward/backward through windows on the current logical monitor
+- **Directional Monitor Focus**: Cycle left/right between logical monitors/zones
+- Intuitive directional controls with proper wrap-around
 
 ### External Command Interface
 - Basic commands (like cycling focus, changing active logical monitor) can be triggered by external scripts via a root window property
@@ -26,7 +27,7 @@ A minimalist X11 window manager with multi-monitor and ultrawide support, follow
 ### Minimalist Design
 - Aims for simplicity and efficiency, following a "suckless" approach
 - Core logic built with testable, pure functions where possible
-- Contained primarily in `swm.c` and `config.h`
+- Contained primarily in `swm.c` and `core.c`
 
 ## Building
 
@@ -69,9 +70,22 @@ sudo make uninstall
 #### Using swmctl (Recommended)
 The `swmctl` script provides an easy way to send commands:
 
+**Window Cycling:**
 ```bash
-./swmctl cycle-window    # or: ./swmctl cw
-./swmctl cycle-monitor   # or: ./swmctl cm
+./swmctl cycle-window-next    # or: ./swmctl cwn
+./swmctl cycle-window-prev    # or: ./swmctl cwp
+./swmctl cycle-window         # or: ./swmctl cw (defaults to next)
+```
+
+**Monitor/Zone Cycling:**
+```bash
+./swmctl cycle-monitor-right  # or: ./swmctl cmr
+./swmctl cycle-monitor-left   # or: ./swmctl cml
+./swmctl cycle-monitor        # or: ./swmctl cm (defaults to right)
+```
+
+**Other Commands:**
+```bash
 ./swmctl quit
 ```
 
@@ -84,23 +98,37 @@ The `swmctl` script provides an easy way to send commands:
    ```
 3. Start sxhkd: `sxhkd &`
 4. Use the configured key bindings:
-   - `Super + Tab`: Cycle windows on current zone
-   - `Super + Grave`: Cycle between zones/monitors
-   - `Super + j`: Alternative window cycling
-   - `Super + k`: Alternative monitor cycling
+
+**Window Management:**
+   - `Super + Tab`: Next window
+   - `Super + Shift + Tab`: Previous window
+   - `Super + j`: Alternative next window
+   - `Super + k`: Alternative previous window
+
+**Monitor/Zone Management:**
+   - `Super + grave`: Right zone
+   - `Super + Shift + grave`: Left zone
+   - `Super + l`: Alternative right zone
+   - `Super + h`: Alternative left zone
+
+**System:**
    - `Super + Shift + q`: Quit window manager
 
 #### Direct X11 Property Method
 You can also send commands directly using xprop:
 ```bash
-# Cycle windows
-xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 1
+# Window cycling
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 3  # Next window
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 4  # Previous window
 
-# Cycle monitors
-xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 2
+# Monitor cycling
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 6  # Right zone
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 5  # Left zone
 
-# Quit
-xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 3
+# Other commands
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 1  # Legacy window cycle
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 2  # Legacy monitor cycle
+xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 7  # Quit
 ```
 
 ## Configuration
@@ -118,6 +146,8 @@ After editing `config.h`, recompile with `make clean && make`.
 
 ### Core Components
 - **swm.c**: Main window manager implementation
+- **core.c**: Pure functions for window management logic
+- **core.h**: Data structures and function prototypes
 - **config.h**: Configuration constants and settings
 - **swmctl**: Helper script for sending commands
 - **Makefile**: Build system
@@ -127,15 +157,40 @@ After editing `config.h`, recompile with `make clean && make`.
 - Minimal global state
 - Simple data structures
 - Clear separation between X11 interface and window management logic
+- Directional consistency: left/previous = -1, right/next = 1
 
 ### Data Structures
 - **LogicalZone**: Represents a logical monitor zone with geometry
 - **Client**: Represents a managed window
 - **WindowManager**: Global state container
 
+### Command Interface
+The window manager responds to the following commands via the `_SWM_COMMAND` root window property:
+
+| Command | Value | Description |
+|---------|-------|-------------|
+| `CMD_CYCLE_WINDOW` | 1 | Legacy window cycling (forward) |
+| `CMD_CYCLE_MONITOR` | 2 | Legacy monitor cycling (right) |
+| `CMD_CYCLE_WINDOW_NEXT` | 3 | Cycle to next window |
+| `CMD_CYCLE_WINDOW_PREV` | 4 | Cycle to previous window |
+| `CMD_CYCLE_MONITOR_LEFT` | 5 | Cycle to left zone |
+| `CMD_CYCLE_MONITOR_RIGHT` | 6 | Cycle to right zone |
+| `CMD_QUIT` | 7 | Quit window manager |
+
 ## Testing
 
-The window manager includes assertions for testing core logic. To run with debug output:
+The window manager includes comprehensive tests for core logic. To run tests:
+```bash
+make test
+```
+
+Tests cover:
+- Monitor zone calculation (regular and ultrawide)
+- Directional window cycling (forward/backward)
+- Directional zone cycling (left/right)
+- Edge cases (single window, single zone, wrap-around)
+
+To run with debug output:
 ```bash
 make debug
 ./swm
@@ -162,6 +217,13 @@ Make sure sxhkd is running and the swmctl script is executable:
 pgrep sxhkd  # Should show a process ID
 chmod +x swmctl
 ```
+
+### Directional cycling feels backwards
+The directional logic follows this convention:
+- **Windows**: Previous (-1) ← → Next (1)
+- **Monitors**: Left (-1) ← → Right (1)
+
+You can customize key bindings in your sxhkd configuration to match your preferences.
 
 ## License
 
