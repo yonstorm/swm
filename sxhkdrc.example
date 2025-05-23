@@ -1,0 +1,28 @@
+# Example sxhkd configuration for SWM window manager
+# Copy this to ~/.config/sxhkd/sxhkdrc or merge with your existing config
+
+# Window management
+super + Tab
+    swmctl cycle-window
+
+super + grave
+    swmctl cycle-monitor
+
+# Alternative bindings
+super + j
+    swmctl cycle-window
+
+super + k
+    swmctl cycle-monitor
+
+# Quit window manager (use with caution)
+super + shift + q
+    swmctl quit
+
+# Launch terminal (adjust to your preferred terminal)
+super + Return
+    alacritty
+
+# Launch application launcher (adjust to your preferred launcher)
+super + d
+    dmenu_run 

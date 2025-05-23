@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# swmctl - Control script for SWM window manager
+# Usage: swmctl <command>
+
+PROPERTY="_SWM_COMMAND"
+
+case "$1" in
+    "cycle-window"|"cw")
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 1
+        ;;
+    "cycle-monitor"|"cm")
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 2
+        ;;
+    "quit")
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 3
+        ;;
+    *)
+        echo "Usage: $0 {cycle-window|cw|cycle-monitor|cm|quit}"
+        echo ""
+        echo "Commands:"
+        echo "  cycle-window, cw    - Cycle focus between windows on current zone"
+        echo "  cycle-monitor, cm   - Cycle focus between logical monitors/zones"
+        echo "  quit                - Quit the window manager"
+        exit 1
+        ;;
+esac 
