@@ -198,22 +198,37 @@ This ensures well-behaved applications can clean up properly while still handlin
 
 ## Testing
 
-The window manager includes comprehensive tests for core logic. To run tests:
+The window manager includes comprehensive tests for core logic and full integration testing using Xvfb (virtual X server). This allows you to test SWM without disrupting your current window manager.
+
+All test files are located in the `tests/` directory. See [`tests/README.md`](tests/README.md) for detailed testing documentation.
+
+### Quick Start
+
 ```bash
+# Run all tests
+make test-all
+
+# Core logic tests only
 make test
+
+# Basic integration tests
+make test-wm
+
+# Ultrawide monitor tests
+make test-ultrawide
+
+# Interactive testing
+make test-wm-interactive
+make test-ultrawide-interactive
 ```
 
-Tests cover:
-- Monitor zone calculation (regular and ultrawide)
-- Directional window cycling (forward/backward)
-- Directional zone cycling (left/right)
-- Edge cases (single window, single zone, wrap-around)
+### Test Dependencies
 
-To run with debug output:
-```bash
-make debug
-./swm
-```
+The integration tests require:
+- `Xvfb` (virtual X server): `sudo pacman -S xorg-server-xvfb`
+- `xdpyinfo` (X display info): `sudo pacman -S xorg-xdpyinfo`
+
+The tests automatically detect available terminal emulators and use the best one available.
 
 ## Troubleshooting
 

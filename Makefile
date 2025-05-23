@@ -6,7 +6,7 @@ TARGET = swm
 SOURCES = swm.c core.c
 OBJECTS = $(SOURCES:.c=.o)
 
-.PHONY: all clean install uninstall test
+.PHONY: all clean install uninstall test test-wm test-ultrawide test-interactive
 
 all: $(TARGET)
 
@@ -16,8 +16,12 @@ $(TARGET): $(OBJECTS)
 %.o: %.c config.h core.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Test client for window manager testing
+tests/test_client: tests/test_client.c
+	$(CC) $(CFLAGS) tests/test_client.c -o tests/test_client -lX11
+
 clean:
-	rm -f $(OBJECTS) $(TARGET) test_swm
+	rm -f $(OBJECTS) $(TARGET) tests/test_swm tests/test_client
 
 install: $(TARGET)
 	cp $(TARGET) /usr/local/bin/
@@ -30,10 +34,42 @@ uninstall:
 debug: CFLAGS += -g -DDEBUG
 debug: $(TARGET)
 
-test: test_swm
-	@echo "Running tests..."
-	./test_swm
+# Core logic tests
+test: tests/test_swm
+	@echo "Running core logic tests..."
+	./tests/test_swm
 
-test_swm: test.c core.o config.h core.h
-	$(CC) $(CFLAGS) test.c core.o -o test_swm $(LDFLAGS)
-	@echo "Test binary compiled successfully" 
+tests/test_swm: tests/test.c core.o config.h core.h
+	$(CC) $(CFLAGS) -I. tests/test.c core.o -o tests/test_swm $(LDFLAGS)
+	@echo "Test binary compiled successfully"
+
+# Window manager integration tests using Xvfb
+test-wm: $(TARGET) tests/test_client
+	@echo "Running window manager integration tests..."
+	@echo "This will test SWM using Xvfb (virtual X server)"
+	./tests/test_wm.sh
+
+test-wm-interactive: $(TARGET) tests/test_client
+	@echo "Starting interactive window manager test environment..."
+	./tests/test_wm.sh -i
+
+# Ultrawide monitor tests
+test-ultrawide: $(TARGET) tests/test_client
+	@echo "Running ultrawide monitor tests..."
+	./tests/test_ultrawide.sh
+
+test-ultrawide-interactive: $(TARGET) tests/test_client
+	@echo "Starting interactive ultrawide test environment..."
+	./tests/test_ultrawide.sh -i
+
+test-ultrawide-compare: $(TARGET) tests/test_client
+	@echo "Comparing regular vs ultrawide monitor behavior..."
+	./tests/test_ultrawide.sh -c
+
+# Run all tests
+test-all: test test-wm test-ultrawide
+	@echo ""
+	@echo "✓ All tests completed successfully!"
+	@echo "  - Core logic tests: PASSED"
+	@echo "  - Window manager integration tests: PASSED"
+	@echo "  - Ultrawide monitor tests: PASSED" 

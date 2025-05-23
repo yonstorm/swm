@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdbool.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xinerama.h>
 #include "config.h"

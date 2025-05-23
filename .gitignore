@@ -1,0 +1,89 @@
+# SWM - Simple Window Manager .gitignore
+
+# Compiled binaries
+swm
+tests/test_swm
+tests/test_client
+
+# Object files
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+
+# Static libraries
+*.a
+*.lib
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Core dumps
+core
+core.*
+
+# Temporary files
+*~
+*.tmp
+*.temp
+.#*
+\#*#
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Test logs and temporary files
+/tmp/swm_*
+*.log
+tests/*.log
+
+# Build directories
+build/
+dist/
+out/
+
+# Package manager files (if using)
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# System files
+.directory
+desktop.ini
+
+# Coverage files (if using code coverage tools)
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# Valgrind output
+vgcore.*
+*.valgrind
+
+# GDB files
+.gdb_history
+
+# Tags files (ctags, etags)
+tags
+TAGS
+
+# Local configuration (if any)
+local.config
+.env 
