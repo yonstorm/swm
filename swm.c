@@ -91,7 +91,25 @@ Client *find_client(Window window) {
 void cycle_window_focus(void) {
     if (wm.zone_count == 0) return;
     
-    Client *next = get_next_window_in_zone(wm.clients, wm.active_zone, wm.focused_client);
+    Client *next = get_next_window_in_zone(wm.clients, wm.active_zone, wm.focused_client, 1);
+    
+    if (next != NULL) {
+        /* Unfocus current window */
+        if (wm.focused_client != NULL) {
+            set_window_border(wm.display, wm.focused_client->window, UNFOCUS_COLOR);
+        }
+        
+        /* Focus next window */
+        wm.focused_client = next;
+        set_window_border(wm.display, next->window, FOCUS_COLOR);
+        focus_window(wm.display, next->window);
+    }
+}
+
+void cycle_window_focus_direction(int direction) {
+    if (wm.zone_count == 0) return;
+    
+    Client *next = get_next_window_in_zone(wm.clients, wm.active_zone, wm.focused_client, direction);
     
     if (next != NULL) {
         /* Unfocus current window */
@@ -186,6 +204,12 @@ void handle_property_notify(XPropertyEvent *event) {
                 switch (command) {
                     case CMD_CYCLE_WINDOW:
                         cycle_window_focus();
+                        break;
+                    case CMD_CYCLE_WINDOW_NEXT:
+                        cycle_window_focus_direction(1);
+                        break;
+                    case CMD_CYCLE_WINDOW_PREV:
+                        cycle_window_focus_direction(-1);
                         break;
                     case CMD_CYCLE_MONITOR:
                         cycle_monitor_focus();

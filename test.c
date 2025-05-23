@@ -123,26 +123,48 @@ void test_window_cycling(void) {
     /* Create mock clients for testing */
     Client client1 = {.window = 1, .zone_index = 0, .next = NULL};
     Client client2 = {.window = 2, .zone_index = 0, .next = NULL};
-    Client client3 = {.window = 3, .zone_index = 1, .next = NULL};
+    Client client3 = {.window = 3, .zone_index = 0, .next = NULL};
+    Client client4 = {.window = 4, .zone_index = 1, .next = NULL};
     
     /* Link them */
     client1.next = &client2;
     client2.next = &client3;
+    client3.next = &client4;
     
-    /* Test cycling in zone 0 */
-    Client *next = get_next_window_in_zone(&client1, 0, &client1);
+    /* Test forward cycling in zone 0 */
+    Client *next = get_next_window_in_zone(&client1, 0, &client1, 1);
     assert(next == &client2);
     
-    next = get_next_window_in_zone(&client1, 0, &client2);
+    next = get_next_window_in_zone(&client1, 0, &client2, 1);
+    assert(next == &client3);
+    
+    next = get_next_window_in_zone(&client1, 0, &client3, 1);
     assert(next == &client1);  /* Should wrap around */
+    
+    /* Test backward cycling in zone 0 */
+    Client *prev = get_next_window_in_zone(&client1, 0, &client1, -1);
+    assert(prev == &client3);  /* Should wrap to last */
+    
+    prev = get_next_window_in_zone(&client1, 0, &client3, -1);
+    assert(prev == &client2);
+    
+    prev = get_next_window_in_zone(&client1, 0, &client2, -1);
+    assert(prev == &client1);
     
     /* Test finding window in zone 1 */
     Client *found = get_window_in_zone(&client1, 1);
-    assert(found == &client3);
+    assert(found == &client4);
     
     /* Test finding window in non-existent zone */
     found = get_window_in_zone(&client1, 99);
     assert(found == NULL);
+    
+    /* Test single window cycling */
+    next = get_next_window_in_zone(&client4, 1, &client4, 1);
+    assert(next == &client4);  /* Should return itself */
+    
+    prev = get_next_window_in_zone(&client4, 1, &client4, -1);
+    assert(prev == &client4);  /* Should return itself */
     
     printf("✓ Window cycling test passed\n");
 }

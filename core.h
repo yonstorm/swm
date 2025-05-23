@@ -23,7 +23,7 @@ typedef struct Client {
 
 /* Pure function prototypes */
 int calculate_zones(XineramaScreenInfo *monitors, int monitor_count, LogicalZone **zones);
-Client *get_next_window_in_zone(Client *clients, int zone_index, Client *current);
+Client *get_next_window_in_zone(Client *clients, int zone_index, Client *current, int direction);
 int get_next_zone(int current_zone, int zone_count);
 Client *get_window_in_zone(Client *clients, int zone_index);
 

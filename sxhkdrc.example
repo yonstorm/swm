@@ -1,18 +1,26 @@
 # Example sxhkd configuration for SWM window manager
 # Copy this to ~/.config/sxhkd/sxhkdrc or merge with your existing config
 
-# Window management
+# Window management - forward cycling
 super + Tab
-    swmctl cycle-window
+    swmctl cycle-window-next
+
+# Window management - backward cycling  
+super + shift + Tab
+    swmctl cycle-window-prev
 
 super + grave
     swmctl cycle-monitor
 
 # Alternative bindings
 super + j
-    swmctl cycle-window
+    swmctl cycle-window-next
 
 super + k
+    swmctl cycle-window-prev
+
+# Monitor cycling
+super + m
     swmctl cycle-monitor
 
 # Quit window manager (use with caution)

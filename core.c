@@ -71,38 +71,49 @@ int calculate_zones(XineramaScreenInfo *monitors, int monitor_count, LogicalZone
     return zone_count;
 }
 
-/* Find next window to focus on current zone */
-Client *get_next_window_in_zone(Client *clients, int zone_index, Client *current) {
+/* Find next window to focus on current zone with direction support */
+Client *get_next_window_in_zone(Client *clients, int zone_index, Client *current, int direction) {
     if (clients == NULL) return NULL;
+    assert(direction == 1 || direction == -1);
     
-    Client *first_in_zone = NULL;
-    Client *next_in_zone = NULL;
-    bool found_current = false;
+    /* Build array of clients in this zone for easier navigation */
+    Client *zone_clients[256];  /* Reasonable limit */
+    int count = 0;
     
     for (Client *c = clients; c != NULL; c = c->next) {
-        if (c->zone_index == zone_index) {
-            if (first_in_zone == NULL) {
-                first_in_zone = c;
-            }
-            
-            if (found_current && next_in_zone == NULL) {
-                next_in_zone = c;
-                break;
-            }
-            
-            if (c == current) {
-                found_current = true;
-            }
+        if (c->zone_index == zone_index && count < 256) {
+            zone_clients[count++] = c;
         }
     }
     
-    /* If we found current but no next, cycle to first */
-    if (found_current && next_in_zone == NULL) {
-        return first_in_zone;
+    if (count == 0) return NULL;
+    if (count == 1) return zone_clients[0];
+    
+    /* Find current client index */
+    int current_index = -1;
+    for (int i = 0; i < count; i++) {
+        if (zone_clients[i] == current) {
+            current_index = i;
+            break;
+        }
     }
     
-    /* If current not found or no current, return first */
-    return next_in_zone ? next_in_zone : first_in_zone;
+    /* If current not found, return first client */
+    if (current_index == -1) {
+        return zone_clients[0];
+    }
+    
+    /* Calculate next index based on direction */
+    int next_index;
+    if (direction == 1) {
+        /* Forward: next window */
+        next_index = (current_index + 1) % count;
+    } else {
+        /* Backward: previous window */
+        next_index = (current_index - 1 + count) % count;
+    }
+    
+    return zone_clients[next_index];
 }
 
 /* Get next zone index for cycling */

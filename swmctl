@@ -9,19 +9,27 @@ case "$1" in
     "cycle-window"|"cw")
         xprop -root -f $PROPERTY 32i -set $PROPERTY 1
         ;;
+    "cycle-window-next"|"cwn")
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 3
+        ;;
+    "cycle-window-prev"|"cwp")
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 4
+        ;;
     "cycle-monitor"|"cm")
         xprop -root -f $PROPERTY 32i -set $PROPERTY 2
         ;;
     "quit")
-        xprop -root -f $PROPERTY 32i -set $PROPERTY 3
+        xprop -root -f $PROPERTY 32i -set $PROPERTY 5
         ;;
     *)
-        echo "Usage: $0 {cycle-window|cw|cycle-monitor|cm|quit}"
+        echo "Usage: $0 {cycle-window|cw|cycle-window-next|cwn|cycle-window-prev|cwp|cycle-monitor|cm|quit}"
         echo ""
         echo "Commands:"
-        echo "  cycle-window, cw    - Cycle focus between windows on current zone"
-        echo "  cycle-monitor, cm   - Cycle focus between logical monitors/zones"
-        echo "  quit                - Quit the window manager"
+        echo "  cycle-window, cw         - Cycle focus forward through windows on current zone"
+        echo "  cycle-window-next, cwn   - Cycle focus forward through windows on current zone"
+        echo "  cycle-window-prev, cwp   - Cycle focus backward through windows on current zone"
+        echo "  cycle-monitor, cm        - Cycle focus between logical monitors/zones"
+        echo "  quit                     - Quit the window manager"
         exit 1
         ;;
 esac 

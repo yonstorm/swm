@@ -19,6 +19,8 @@
 enum swm_command {
     CMD_CYCLE_WINDOW = 1,
     CMD_CYCLE_MONITOR,
+    CMD_CYCLE_WINDOW_NEXT,
+    CMD_CYCLE_WINDOW_PREV,
     CMD_QUIT
 };
 
