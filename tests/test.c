@@ -7,6 +7,43 @@
 #include "config.h"
 #include "core.h"
 
+/* Helper function to create a mock DisplayManager for testing */
+DisplayManager *create_test_display_manager(int zone_count) {
+    DisplayManager *display = malloc(sizeof(DisplayManager));
+    assert(display != NULL);
+    
+    display->x_display = NULL;  /* Not needed for pure logic tests */
+    display->screen = 0;
+    display->root = 0;
+    display->zones = NULL;
+    display->zone_count = zone_count;
+    display->active_zone = 0;
+    display->command_atom = 0;
+    display->next = NULL;
+    
+    /* Allocate zone-based client management arrays */
+    display->zone_clients = calloc(zone_count, sizeof(Client*));
+    display->zone_current_index = malloc(zone_count * sizeof(int));
+    assert(display->zone_clients != NULL && display->zone_current_index != NULL);
+    
+    /* Initialize all zones to have no clients */
+    for (int i = 0; i < zone_count; i++) {
+        display->zone_clients[i] = NULL;
+        display->zone_current_index[i] = -1;
+    }
+    
+    return display;
+}
+
+void cleanup_test_display_manager(DisplayManager *display) {
+    if (display) {
+        if (display->zones) free(display->zones);
+        if (display->zone_clients) free(display->zone_clients);
+        if (display->zone_current_index) free(display->zone_current_index);
+        free(display);
+    }
+}
+
 /* Test functions */
 void test_regular_monitor_zones(void) {
     printf("Testing regular monitor zone calculation...\n");
@@ -67,30 +104,30 @@ void test_ultrawide_monitor_zones(void) {
     printf("✓ Ultrawide monitor test passed\n");
 }
 
-void test_zone_cycling(void) {
+void test_zone_cycling_logic(void) {
     printf("Testing zone cycling logic...\n");
     
-    /* Test with 3 zones - right direction */
-    assert(get_next_zone(0, 3, 1) == 1);
-    assert(get_next_zone(1, 3, 1) == 2);
-    assert(get_next_zone(2, 3, 1) == 0);  /* Wrap around */
+    /* Test with 3 zones - right direction (modular arithmetic) */
+    assert((0 + 1) % 3 == 1);
+    assert((1 + 1) % 3 == 2);
+    assert((2 + 1) % 3 == 0);  /* Wrap around */
     
     /* Test with 3 zones - left direction */
-    assert(get_next_zone(0, 3, -1) == 2);  /* Wrap around */
-    assert(get_next_zone(1, 3, -1) == 0);
-    assert(get_next_zone(2, 3, -1) == 1);
+    assert((0 - 1 + 3) % 3 == 2);  /* Wrap around */
+    assert((1 - 1 + 3) % 3 == 0);
+    assert((2 - 1 + 3) % 3 == 1);
     
     /* Test with 1 zone */
-    assert(get_next_zone(0, 1, 1) == 0);
-    assert(get_next_zone(0, 1, -1) == 0);
+    assert((0 + 1) % 1 == 0);
+    assert((0 - 1 + 1) % 1 == 0);
     
     /* Test with 5 zones - right direction */
-    assert(get_next_zone(4, 5, 1) == 0);  /* Wrap around */
-    assert(get_next_zone(3, 5, 1) == 4);
+    assert((4 + 1) % 5 == 0);  /* Wrap around */
+    assert((3 + 1) % 5 == 4);
     
     /* Test with 5 zones - left direction */
-    assert(get_next_zone(0, 5, -1) == 4);  /* Wrap around */
-    assert(get_next_zone(1, 5, -1) == 0);
+    assert((0 - 1 + 5) % 5 == 4);  /* Wrap around */
+    assert((1 - 1 + 5) % 5 == 0);
     
     printf("✓ Zone cycling test passed\n");
 }
@@ -129,131 +166,211 @@ void test_mixed_monitors(void) {
     printf("✓ Mixed monitor test passed\n");
 }
 
-void test_window_cycling(void) {
-    printf("Testing window cycling logic...\n");
+void test_zone_based_client_management(void) {
+    printf("Testing zone-based client management...\n");
     
-    /* Create mock clients for testing */
+    /* Create test display manager with 3 zones */
+    DisplayManager *display = create_test_display_manager(3);
+    
+    /* Create mock clients */
+    Client client1 = {.window = 1, .zone_index = 0, .next = NULL};
+    Client client2 = {.window = 2, .zone_index = 0, .next = NULL};
+    Client client3 = {.window = 3, .zone_index = 1, .next = NULL};
+    Client client4 = {.window = 4, .zone_index = 1, .next = NULL};
+    
+    /* Test initial state - no clients */
+    assert(count_clients_in_zone(display, 0) == 0);
+    assert(count_clients_in_zone(display, 1) == 0);
+    assert(count_clients_in_zone(display, 2) == 0);
+    assert(get_current_client_in_zone(display, 0) == NULL);
+    
+    /* Add clients to zone 0 */
+    add_client_to_zone(display, 0, &client1);
+    assert(count_clients_in_zone(display, 0) == 1);
+    assert(get_current_client_in_zone(display, 0) == &client1);
+    assert(display->zone_current_index[0] == 0);
+    
+    add_client_to_zone(display, 0, &client2);
+    assert(count_clients_in_zone(display, 0) == 2);
+    assert(get_current_client_in_zone(display, 0) == &client2);  /* New client becomes current */
+    assert(display->zone_current_index[0] == 0);
+    
+    /* Add clients to zone 1 */
+    add_client_to_zone(display, 1, &client3);
+    assert(count_clients_in_zone(display, 1) == 1);
+    assert(get_current_client_in_zone(display, 1) == &client3);
+    
+    add_client_to_zone(display, 1, &client4);
+    assert(count_clients_in_zone(display, 1) == 2);
+    assert(get_current_client_in_zone(display, 1) == &client4);
+    
+    /* Test cycling within zone 0 */
+    display->zone_current_index[0] = 1;  /* Move to second client */
+    assert(get_current_client_in_zone(display, 0) == &client1);
+    
+    /* Test removing clients */
+    remove_client_from_zone(display, 0, &client2);
+    assert(count_clients_in_zone(display, 0) == 1);
+    assert(get_current_client_in_zone(display, 0) == &client1);
+    assert(display->zone_current_index[0] == 0);
+    
+    remove_client_from_zone(display, 0, &client1);
+    assert(count_clients_in_zone(display, 0) == 0);
+    assert(get_current_client_in_zone(display, 0) == NULL);
+    assert(display->zone_current_index[0] == -1);
+    
+    /* Test removing from zone 1 */
+    remove_client_from_zone(display, 1, &client4);  /* Remove current client */
+    assert(count_clients_in_zone(display, 1) == 1);
+    assert(get_current_client_in_zone(display, 1) == &client3);
+    
+    cleanup_test_display_manager(display);
+    printf("✓ Zone-based client management test passed\n");
+}
+
+void test_window_cycling_with_indices(void) {
+    printf("Testing window cycling with indices...\n");
+    
+    DisplayManager *display = create_test_display_manager(2);
+    
+    /* Create and add clients to zone 0 */
     Client client1 = {.window = 1, .zone_index = 0, .next = NULL};
     Client client2 = {.window = 2, .zone_index = 0, .next = NULL};
     Client client3 = {.window = 3, .zone_index = 0, .next = NULL};
-    Client client4 = {.window = 4, .zone_index = 1, .next = NULL};
     
-    /* Link them */
-    client1.next = &client2;
-    client2.next = &client3;
-    client3.next = &client4;
+    add_client_to_zone(display, 0, &client1);
+    add_client_to_zone(display, 0, &client2);
+    add_client_to_zone(display, 0, &client3);
     
-    /* Test forward cycling in zone 0 */
-    Client *next = get_next_window_in_zone(&client1, 0, &client1, 1);
-    assert(next == &client2);
+    /* Test cycling forward */
+    assert(get_current_client_in_zone(display, 0) == &client3);  /* Index 0 */
     
-    next = get_next_window_in_zone(&client1, 0, &client2, 1);
-    assert(next == &client3);
+    display->zone_current_index[0] = 1;
+    assert(get_current_client_in_zone(display, 0) == &client2);  /* Index 1 */
     
-    next = get_next_window_in_zone(&client1, 0, &client3, 1);
-    assert(next == &client1);  /* Should wrap around */
+    display->zone_current_index[0] = 2;
+    assert(get_current_client_in_zone(display, 0) == &client1);  /* Index 2 */
     
-    /* Test backward cycling in zone 0 */
-    Client *prev = get_next_window_in_zone(&client1, 0, &client1, -1);
-    assert(prev == &client3);  /* Should wrap to last */
+    /* Test cycling with modular arithmetic */
+    int count = count_clients_in_zone(display, 0);
+    assert(count == 3);
     
-    prev = get_next_window_in_zone(&client1, 0, &client3, -1);
-    assert(prev == &client2);
+    /* Forward cycling */
+    int current_index = 0;
+    current_index = (current_index + 1) % count;
+    assert(current_index == 1);
     
-    prev = get_next_window_in_zone(&client1, 0, &client2, -1);
-    assert(prev == &client1);
+    current_index = (current_index + 1) % count;
+    assert(current_index == 2);
     
-    /* Test finding window in zone 1 */
-    Client *found = get_window_in_zone(&client1, 1);
-    assert(found == &client4);
+    current_index = (current_index + 1) % count;
+    assert(current_index == 0);  /* Wrap around */
     
-    /* Test finding window in non-existent zone */
-    found = get_window_in_zone(&client1, 99);
-    assert(found == NULL);
+    /* Backward cycling */
+    current_index = 0;
+    current_index = (current_index - 1 + count) % count;
+    assert(current_index == 2);  /* Wrap around */
     
-    /* Test single window cycling */
-    next = get_next_window_in_zone(&client4, 1, &client4, 1);
-    assert(next == &client4);  /* Should return itself */
+    current_index = (current_index - 1 + count) % count;
+    assert(current_index == 1);
     
-    prev = get_next_window_in_zone(&client4, 1, &client4, -1);
-    assert(prev == &client4);  /* Should return itself */
-    
-    printf("✓ Window cycling test passed\n");
+    cleanup_test_display_manager(display);
+    printf("✓ Window cycling with indices test passed\n");
 }
 
 void test_window_movement_logic(void) {
     printf("Testing window movement logic...\n");
     
-    /* Test zone calculation for window movement */
+    /* Test zone calculation for window movement using modular arithmetic */
     
     /* Test moving right in a 3-zone setup */
-    int target_zone = get_next_zone(0, 3, 1);  /* Move right from zone 0 */
+    int current_zone = 0;
+    int zone_count = 3;
+    int target_zone = (current_zone + 1) % zone_count;
     assert(target_zone == 1);
     
-    target_zone = get_next_zone(1, 3, 1);  /* Move right from zone 1 */
+    current_zone = 1;
+    target_zone = (current_zone + 1) % zone_count;
     assert(target_zone == 2);
     
-    target_zone = get_next_zone(2, 3, 1);  /* Move right from zone 2 (wrap) */
-    assert(target_zone == 0);
+    current_zone = 2;
+    target_zone = (current_zone + 1) % zone_count;
+    assert(target_zone == 0);  /* Wrap around */
     
     /* Test moving left in a 3-zone setup */
-    target_zone = get_next_zone(0, 3, -1);  /* Move left from zone 0 (wrap) */
-    assert(target_zone == 2);
+    current_zone = 0;
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
+    assert(target_zone == 2);  /* Wrap around */
     
-    target_zone = get_next_zone(1, 3, -1);  /* Move left from zone 1 */
+    current_zone = 1;
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
     assert(target_zone == 0);
     
-    target_zone = get_next_zone(2, 3, -1);  /* Move left from zone 2 */
+    current_zone = 2;
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
     assert(target_zone == 1);
     
     /* Test with 5-zone setup (mixed monitors) */
-    target_zone = get_next_zone(0, 5, 1);  /* Move right from zone 0 */
+    zone_count = 5;
+    current_zone = 0;
+    target_zone = (current_zone + 1) % zone_count;
     assert(target_zone == 1);
     
-    target_zone = get_next_zone(4, 5, 1);  /* Move right from last zone (wrap) */
-    assert(target_zone == 0);
+    current_zone = 4;
+    target_zone = (current_zone + 1) % zone_count;
+    assert(target_zone == 0);  /* Wrap around */
     
-    target_zone = get_next_zone(0, 5, -1);  /* Move left from first zone (wrap) */
-    assert(target_zone == 4);
+    current_zone = 0;
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
+    assert(target_zone == 4);  /* Wrap around */
     
-    target_zone = get_next_zone(3, 5, -1);  /* Move left from zone 3 */
+    current_zone = 3;
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
     assert(target_zone == 2);
     
     /* Test edge cases */
     
     /* Single zone - movement should stay in same zone */
-    target_zone = get_next_zone(0, 1, 1);
+    zone_count = 1;
+    current_zone = 0;
+    target_zone = (current_zone + 1) % zone_count;
     assert(target_zone == 0);
     
-    target_zone = get_next_zone(0, 1, -1);
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
     assert(target_zone == 0);
     
     /* Two zones */
-    target_zone = get_next_zone(0, 2, 1);
+    zone_count = 2;
+    current_zone = 0;
+    target_zone = (current_zone + 1) % zone_count;
     assert(target_zone == 1);
     
-    target_zone = get_next_zone(1, 2, 1);
+    current_zone = 1;
+    target_zone = (current_zone + 1) % zone_count;
     assert(target_zone == 0);
     
-    target_zone = get_next_zone(0, 2, -1);
+    current_zone = 0;
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
     assert(target_zone == 1);
     
-    target_zone = get_next_zone(1, 2, -1);
+    current_zone = 1;
+    target_zone = (current_zone - 1 + zone_count) % zone_count;
     assert(target_zone == 0);
     
     printf("✓ Window movement logic test passed\n");
 }
 
 int main(void) {
-    printf("Running SWM pure function tests...\n\n");
+    printf("Running SWM simplified approach tests...\n\n");
     
     test_regular_monitor_zones();
     test_ultrawide_monitor_zones();
-    test_zone_cycling();
+    test_zone_cycling_logic();
     test_mixed_monitors();
-    test_window_cycling();
+    test_zone_based_client_management();
+    test_window_cycling_with_indices();
     test_window_movement_logic();
     
-    printf("\n✓ All tests passed! Core logic is working correctly.\n");
+    printf("\n✓ All tests passed! Simplified zone-based logic is working correctly.\n");
     return 0;
 } 

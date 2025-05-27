@@ -5,7 +5,7 @@
 #include "config.h"
 #include "core.h"
 
-/* Pure functions for core logic */
+/* Core logic functions */
 
 /* Calculate logical zones from physical monitors */
 int calculate_zones(XineramaScreenInfo *monitors, int monitor_count, LogicalZone **zones) {
@@ -71,71 +71,92 @@ int calculate_zones(XineramaScreenInfo *monitors, int monitor_count, LogicalZone
     return zone_count;
 }
 
-/* Find next window to focus on current zone with direction support */
-Client *get_next_window_in_zone(Client *clients, int zone_index, Client *current, int direction) {
-    if (clients == NULL) return NULL;
-    assert(direction == 1 || direction == -1);
+/* Simplified zone-based client management functions */
+
+Client *get_current_client_in_zone(DisplayManager *display, int zone) {
+    if (!display || zone < 0 || zone >= display->zone_count) {
+        return NULL;
+    }
     
-    /* Build array of clients in this zone for easier navigation */
-    Client *zone_clients[256];  /* Reasonable limit */
+    Client *clients = display->zone_clients[zone];
+    int current_index = display->zone_current_index[zone];
+    
+    if (!clients || current_index < 0) {
+        return NULL;
+    }
+    
+    /* Walk to the current index */
+    Client *current = clients;
+    for (int i = 0; i < current_index && current; i++) {
+        current = current->next;
+    }
+    
+    return current;
+}
+
+int count_clients_in_zone(DisplayManager *display, int zone) {
+    if (!display || zone < 0 || zone >= display->zone_count) {
+        return 0;
+    }
+    
     int count = 0;
-    
-    for (Client *c = clients; c != NULL; c = c->next) {
-        if (c->zone_index == zone_index && count < 256) {
-            zone_clients[count++] = c;
-        }
+    Client *current = display->zone_clients[zone];
+    while (current) {
+        count++;
+        current = current->next;
     }
     
-    if (count == 0) return NULL;
-    if (count == 1) return zone_clients[0];
-    
-    /* Find current client index */
-    int current_index = -1;
-    for (int i = 0; i < count; i++) {
-        if (zone_clients[i] == current) {
-            current_index = i;
-            break;
-        }
-    }
-    
-    /* If current not found, return first client */
-    if (current_index == -1) {
-        return zone_clients[0];
-    }
-    
-    /* Calculate next index based on direction */
-    int next_index;
-    if (direction == 1) {
-        /* Forward: next window */
-        next_index = (current_index + 1) % count;
-    } else {
-        /* Backward: previous window */
-        next_index = (current_index - 1 + count) % count;
-    }
-    
-    return zone_clients[next_index];
+    return count;
 }
 
-/* Get next zone index for cycling with direction support */
-int get_next_zone(int current_zone, int zone_count, int direction) {
-    assert(zone_count > 0);
-    assert(direction == 1 || direction == -1);
+void add_client_to_zone(DisplayManager *display, int zone, Client *client) {
+    if (!display || !client || zone < 0 || zone >= display->zone_count) {
+        return;
+    }
     
-    if (direction == 1) {
-        /* Right: next zone */
-        return (current_zone + 1) % zone_count;
-    } else {
-        /* Left: previous zone */
-        return (current_zone - 1 + zone_count) % zone_count;
+    client->zone_index = zone;
+    client->next = display->zone_clients[zone];
+    display->zone_clients[zone] = client;
+    
+    /* If this is the first client in the zone, make it current */
+    if (display->zone_current_index[zone] < 0) {
+        display->zone_current_index[zone] = 0;
     }
 }
 
-/* Find a window in the specified zone */
-Client *get_window_in_zone(Client *clients, int zone_index) {
-    for (Client *c = clients; c != NULL; c = c->next) {
-        if (c->zone_index == zone_index) {
-            return c;
-        }
+void remove_client_from_zone(DisplayManager *display, int zone, Client *client) {
+    if (!display || !client || zone < 0 || zone >= display->zone_count) {
+        return;
     }
-    return NULL;
+    
+    Client **current = &display->zone_clients[zone];
+    int index = 0;
+    
+    while (*current) {
+        if (*current == client) {
+            *current = client->next;
+            
+            /* Update current index if needed */
+            int current_index = display->zone_current_index[zone];
+            if (index == current_index) {
+                /* Removed the current client */
+                if (*current) {
+                    /* Keep same index, now points to next client */
+                } else if (index > 0) {
+                    /* Move to previous client */
+                    display->zone_current_index[zone] = index - 1;
+                } else {
+                    /* No clients left */
+                    display->zone_current_index[zone] = -1;
+                }
+            } else if (index < current_index) {
+                /* Removed a client before current, adjust index */
+                display->zone_current_index[zone]--;
+            }
+            
+            return;
+        }
+        current = &(*current)->next;
+        index++;
+    }
 } 
