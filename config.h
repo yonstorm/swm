@@ -6,6 +6,9 @@
 #define FOCUS_COLOR         0x005577  /* Blue border for focused window */
 #define UNFOCUS_COLOR       0x444444  /* Gray border for unfocused windows */
 
+/* Focus behavior */
+#define FOCUS_FOLLOWS_MOUSE 1         /* 1 to enable, 0 to disable */
+
 /* Monitor configuration */
 #define ULTRAWIDE_THRESHOLD 5000      /* Pixels width to consider ultrawide */
 #define ZONE_LEFT_RATIO     0.25      /* Left zone: 1/4 of ultrawide */

@@ -77,4 +77,22 @@ test-all: test test-wm test-ultrawide
 	@echo "✓ All tests completed successfully!"
 	@echo "  - Core logic tests: PASSED"
 	@echo "  - Window manager integration tests: PASSED"
-	@echo "  - Ultrawide monitor tests: PASSED" 
+	@echo "  - Ultrawide monitor tests: PASSED"
+
+# Focus follows mouse tests
+test-focus-follows-mouse: $(TARGET) tests/test_client
+	@echo "Running focus follows mouse tests..."
+	./tests/test_focus_follows_mouse.sh
+
+test-focus-follows-mouse-interactive: $(TARGET) tests/test_client
+	@echo "Starting interactive focus follows mouse test environment..."
+	./tests/test_focus_follows_mouse.sh -i
+
+# Extended test suite including focus follows mouse
+test-all-extended: test test-wm test-ultrawide test-focus-follows-mouse
+	@echo ""
+	@echo "✓ All extended tests completed successfully!"
+	@echo "  - Core logic tests: PASSED"
+	@echo "  - Window manager integration tests: PASSED"
+	@echo "  - Ultrawide monitor tests: PASSED"
+	@echo "  - Focus follows mouse tests: PASSED" 

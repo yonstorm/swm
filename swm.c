@@ -357,6 +357,9 @@ void handle_map_request(XMapRequestEvent *event) {
     
     /* Set border and map window */
     set_window_border(display->x_display, window, UNFOCUS_COLOR);
+#if FOCUS_FOLLOWS_MOUSE
+    XSelectInput(display->x_display, window, EnterWindowMask);
+#endif
     XMapWindow(display->x_display, window);
     
     /* Unfocus previous window and focus the new one */
@@ -498,6 +501,38 @@ void handle_property_notify(XPropertyEvent *event) {
     }
 }
 
+#if FOCUS_FOLLOWS_MOUSE
+void handle_enter_notify(XEnterWindowEvent *event) {
+    DisplayManager *display = wm.active_display;
+    if (!display) return;
+    
+    Client *client = find_client_by_window(display, event->window);
+    if (!client) return;
+    
+    /* If it's already the focused window, do nothing */
+    Client *current = get_current_client_in_zone(display, display->active_zone);
+    if (current && current->window == event->window) return;
+    
+    /* Update active zone */
+    display->active_zone = client->zone_index;
+    
+    /* Use existing focus logic - just focus the window directly */
+    set_window_border(display->x_display, event->window, FOCUS_COLOR);
+    focus_window(display->x_display, event->window);
+    
+    /* Unfocus all other windows in all zones */
+    for (int zone = 0; zone < display->zone_count; zone++) {
+        Client *zone_client = display->zone_clients[zone];
+        while (zone_client) {
+            if (zone_client->window != event->window) {
+                set_window_border(display->x_display, zone_client->window, UNFOCUS_COLOR);
+            }
+            zone_client = zone_client->next;
+        }
+    }
+}
+#endif
+
 /* Initialization */
 
 DisplayManager *create_display_manager(Display *x_display, int screen, Window root) {
@@ -607,6 +642,11 @@ int main(void) {
             case PropertyNotify:
                 handle_property_notify(&event.xproperty);
                 break;
+#if FOCUS_FOLLOWS_MOUSE
+            case EnterNotify:
+                handle_enter_notify(&event.xcrossing);
+                break;
+#endif
         }
     }
     

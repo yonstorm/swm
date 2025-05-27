@@ -19,6 +19,7 @@ A minimalist X11 window manager with multi-monitor and ultrawide support, follow
 ### Focus Control
 - **Directional Window Focus**: Cycle forward/backward through windows on the current logical monitor
 - **Directional Monitor Focus**: Cycle left/right between logical monitors/zones
+- **Focus Follows Mouse**: Windows automatically gain focus when the mouse cursor enters them (configurable)
 - **Window Termination**: Kill the currently focused window
 - Intuitive directional controls with proper wrap-around
 
@@ -162,6 +163,7 @@ xprop -root -f _SWM_COMMAND 32i -set _SWM_COMMAND 8  # Quit
 Edit `config.h` to customize:
 
 - **Border colors and width**: `FOCUS_COLOR`, `UNFOCUS_COLOR`, `BORDER_WIDTH`
+- **Focus behavior**: `FOCUS_FOLLOWS_MOUSE` (1 to enable, 0 to disable)
 - **Ultrawide threshold**: `ULTRAWIDE_THRESHOLD` (default: 5000px)
 - **Zone ratios**: `ZONE_LEFT_RATIO`, `ZONE_CENTER_RATIO`, `ZONE_RIGHT_RATIO`
 - **Command property name**: `COMMAND_PROPERTY`
@@ -240,9 +242,16 @@ make test-wm
 # Ultrawide monitor tests
 make test-ultrawide
 
+# Focus follows mouse tests
+make test-focus-follows-mouse
+
 # Interactive testing
 make test-wm-interactive
 make test-ultrawide-interactive
+make test-focus-follows-mouse-interactive
+
+# Extended test suite (includes focus follows mouse)
+make test-all-extended
 ```
 
 ### Test Dependencies
@@ -284,3 +293,5 @@ You can customize key bindings in your sxhkd configuration to match your prefere
 
 ### Window won't close
 The kill window function tries graceful termination first, then force kills. If a window still won't close, it may be a system-level issue or the application may be completely frozen.
+
+### All Tests
